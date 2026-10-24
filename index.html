@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A 16-bit overworld learning aid for wired 802.1X EAP-TLS: animated packets, click-to-zoom packet and device inspectors, failure scenarios and a quiz.">
+<meta property="og:title" content="NetSec World · 802.1X EAP-TLS">
+<meta property="og:description" content="Follow one laptop through 802.1X EAP-TLS on a playable 16-bit map: EAPOL, RADIUS, the mutual TLS handshake, and four ways it fails.">
+<meta property="og:type" content="website">
+<title>NetSec World</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: SNES overworld map as the hero stage, inspector window beside it, sequence ladder, episodes and quiz below. Light "16-bit menu" theme: pale sky ground, white windows with chunky navy pixel borders, dark text for readability. */
+:root{
+  --sky:#E4EBFA; --panel:#FFFFFF; --panel-2:#EEF2FC; --line:#1B1F4A; --ink:#1B1F4A;
+  --text:#14183A; --muted:#454D78; --gold:#F8D830; --gold-ink:#7A5400;
+  --eapol:#D42C2C; --radius:#E0A000; --tls:#8A3CE0; --ok:#1E9E44; --fail:#D83A3A; --eth:#5A6AB0; --ip:#1F9A92; --cert:#2E9E58; --eap:#D0408C;
+  --f-pixel:"Press Start 2P", ui-monospace, monospace;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sky);color:var(--text);font-family:var(--f-body);font-size:16px;line-height:1.6;
+  background-image:radial-gradient(rgba(27,31,74,.07) 1px,transparent 1px);background-size:6px 6px}
+.wrap{max-width:1260px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.eyebrow{font-family:var(--f-pixel);font-size:10px;letter-spacing:.08em;color:var(--gold-ink)}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px}
+header h1{font-family:var(--f-pixel);font-size:clamp(20px,3.4vw,32px);line-height:1.35;margin-top:10px;color:var(--ink);text-shadow:3px 3px 0 var(--gold)}
+header p{margin:10px 0 0;max-width:62ch;color:var(--muted)}
+.win{background:var(--panel);border:3px solid var(--line);border-radius:6px;box-shadow:4px 4px 0 var(--line)}
+.stage{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:940px){.stage{grid-template-columns:minmax(0,1fr)}}
+.mapcol{display:flex;flex-direction:column;gap:14px;min-width:0}
+.scen{display:flex;flex-wrap:wrap;gap:8px}
+.scen button,.ctrl button,.seg button{font-family:var(--f-pixel);font-size:10px;line-height:1.4;color:var(--ink);background:var(--panel);border:2px solid var(--line);border-radius:4px;padding:9px 11px;cursor:pointer;box-shadow:2px 2px 0 var(--line)}
+.scen button:hover,.ctrl button:hover,.seg button:hover{background:var(--panel-2)}
+.scen button[aria-pressed="true"]{background:var(--gold);color:var(--ink)}
+.scen button.bad[aria-pressed="true"]{background:#FFC9C9;color:#5A0E0E}
+button:focus-visible,.row:focus-visible{outline:3px solid #2F6BFF;outline-offset:2px}
+.mapbox{position:relative;padding:0;overflow:hidden}
+#map{display:block;width:100%;height:auto;aspect-ratio:680/400;image-rendering:pixelated;cursor:default;max-width:100%}
+.mapbar{position:absolute;top:8px;right:8px;display:flex;gap:6px}
+.mapbar button{font-family:var(--f-pixel);font-size:9px;color:var(--ink);background:#fff;border:2px solid var(--ink);border-radius:3px;padding:7px 8px;cursor:pointer}
+.mapbar button[aria-pressed="true"]{background:var(--gold)}
+.hint{position:absolute;left:8px;bottom:8px;font-family:var(--f-pixel);font-size:9px;color:var(--ink);background:rgba(255,255,255,.94);border:2px solid var(--ink);padding:6px 8px;border-radius:3px}
+.caption{padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-height:118px}
+.caption .c1{font-family:var(--f-pixel);font-size:10px;color:var(--gold-ink)}
+.caption .c2{font-family:var(--f-pixel);font-size:12px;line-height:1.6;color:var(--ink)}
+.caption .c3{color:var(--text);max-width:70ch}
+.caption .out{font-family:var(--f-pixel);font-size:10px;padding:8px 10px;border-radius:3px;align-self:flex-start;border:2px solid var(--line)}
+.out.ok{background:#C8F2D2;color:#0B3B1A}.out.fail{background:#FFD3D3;color:#5A0E0E}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:flex;gap:0}
+.seg button{border-radius:0;box-shadow:none}
+.seg button+button{border-left:0}
+.seg button:first-child{border-radius:4px 0 0 4px}.seg button:last-child{border-radius:0 4px 4px 0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.ctrl .lbl{font-family:var(--f-pixel);font-size:9px;color:var(--muted);margin-left:6px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--text)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:14px;height:10px;display:inline-block;border:2px solid var(--ink)}
+.insp{position:sticky;top:max(12px,env(safe-area-inset-top,0px));max-height:calc(100vh - 24px);overflow:auto;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:940px){.insp{position:static;max-height:none}}
+.insp .ih{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.insp h2{font-family:var(--f-pixel);font-size:12px;line-height:1.6;color:var(--ink)}
+.insp .sub{font-size:14px;color:var(--muted)}
+.insp .back{font-family:var(--f-pixel);font-size:9px;background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:3px;padding:7px 8px;cursor:pointer;white-space:nowrap}
+.stackt{font-family:var(--f-pixel);font-size:9px;color:var(--gold-ink);margin:4px 0 -4px}
+.layer{border:2px solid var(--line);border-left:6px solid var(--eth);background:#F6F8FE;padding:8px 10px 10px;margin-top:8px;border-radius:3px;min-width:0}
+.layer>.layer{margin-left:4px;background:#fff}
+.layer>.layer>.layer{background:#F6F8FE}
+.layer>.layer>.layer>.layer{background:#fff}
+.lh{font-family:var(--f-pixel);font-size:9px;line-height:1.5;margin-bottom:6px;color:var(--ink)}
+.k-eth{border-left-color:var(--eth)}.k-ip{border-left-color:var(--ip)}.k-rad{border-left-color:var(--radius)}.k-eapol{border-left-color:var(--eapol)}.k-eap{border-left-color:var(--eap)}.k-tls{border-left-color:var(--tls)}
+dl.f{display:grid;grid-template-columns:minmax(92px,auto) minmax(0,1fr);gap:3px 12px;margin:0;font-size:13px}
+dl.f dt{font-family:var(--f-mono);color:var(--muted)}
+dl.f dd{margin:0;font-family:var(--f-mono);color:var(--text);overflow-wrap:anywhere}
+.avp{margin-top:8px;border-top:2px dashed #B9C0E0;padding-top:6px}
+.avp .lh{color:var(--gold-ink)}
+.cert{border:2px solid var(--line);background:#E6F7EB;border-left:6px solid var(--cert);padding:10px;border-radius:3px}
+.cert.bad{background:#FFE6E6;border-left-color:var(--fail)}
+.cert .lh{color:#0B3B1A}.cert.bad .lh{color:#5A0E0E}
+.checks{margin:8px 0 0;padding:0;list-style:none;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.checks li::before{content:"✓ ";color:var(--ok);font-weight:600}
+.checks li.x::before{content:"✕ ";color:var(--fail);font-weight:600}
+.tip{border:2px dashed var(--line);background:#FFF8D6;border-radius:4px;padding:10px 12px;font-size:15px;color:var(--text)}
+.tip b{font-family:var(--f-pixel);font-size:9px;color:var(--gold-ink);display:block;margin-bottom:4px;font-weight:400}
+pre.code{margin:0;background:#F2F5FD;border:2px solid var(--line);border-radius:4px;padding:10px 12px;overflow-x:auto;font-family:var(--f-mono);font-size:13px;line-height:1.55;color:#14183A}
+pre.code .cm{color:#5F6A9A}
+ul.facts{margin:0;padding-left:18px;font-size:15px;display:flex;flex-direction:column;gap:4px}
+.sec{display:flex;flex-direction:column;gap:14px}
+.sec h2{font-family:var(--f-pixel);font-size:14px;line-height:1.5;color:var(--ink)}
+.sec .lead{margin:0;color:var(--muted);max-width:70ch}
+.ladder{padding:8px;overflow-x:auto}
+.lanes{display:grid;grid-template-columns:44px minmax(220px,1.4fr) minmax(260px,1fr);gap:0;min-width:560px}
+.lanehead{font-family:var(--f-pixel);font-size:9px;color:var(--muted);padding:8px 10px}
+.lanehead.lanes3{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center}
+.row{display:contents;cursor:pointer}
+.row>div{padding:9px 10px;border-top:1px solid #D3D9F0;display:flex;align-items:center;min-width:0}
+.row .num{font-family:var(--f-pixel);font-size:10px;color:var(--muted);justify-content:center}
+.row .nm{font-size:15px;line-height:1.4}
+.row:hover>div{background:var(--panel-2)}
+.row.cur>div{background:#FFF1A8}
+.row.cur .num{color:var(--ink)}
+.row.done .num{color:var(--ok)}
+.track{position:relative;height:22px;width:100%}
+.track .ln{position:absolute;top:0;bottom:0;width:2px;background:#B9C0E0}
+.track .ar{position:absolute;top:8px;height:6px;border-radius:1px}
+.track .hd{position:absolute;top:4px;width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent}
+.track .xx{position:absolute;top:0;font-family:var(--f-pixel);font-size:11px;color:var(--fail)}
+.eps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.ep{padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ep .tag{font-family:var(--f-pixel);font-size:9px;align-self:flex-start;padding:5px 7px;border-radius:3px;background:var(--panel-2);color:var(--muted);border:2px solid var(--line)}
+.ep.now .tag{background:var(--gold);color:var(--ink)}
+.ep h3{font-family:var(--f-pixel);font-size:11px;line-height:1.6;color:var(--ink)}
+.ep p{margin:0;font-size:15px;color:var(--muted)}
+.ep .zone{font-size:14px;color:var(--text);font-weight:500}
+.ep.locked{background:repeating-linear-gradient(135deg,#FFFFFF,#FFFFFF 10px,#F1F4FC 10px,#F1F4FC 20px)}
+.quiz{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.q{padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.q h3{font-size:16px;font-weight:600;line-height:1.45;color:var(--ink);font-family:var(--f-body)}
+.q .qn{font-family:var(--f-pixel);font-size:9px;color:var(--gold-ink)}
+.q .opts{display:flex;flex-direction:column;gap:6px}
+.q .opts button{text-align:left;font-family:var(--f-body);font-size:15px;color:var(--text);background:var(--panel-2);border:2px solid var(--line);border-radius:4px;padding:8px 10px;cursor:pointer}
+.q .opts button:hover{background:#FFF8D6}
+.q .opts button.right{background:#C8F2D2;border-color:var(--ok)}
+.q .opts button.wrong{background:#FFD3D3;border-color:var(--fail)}
+.q .fb{font-size:14.5px;color:var(--text);margin:0}
+.score{font-family:var(--f-pixel);font-size:10px;color:var(--gold-ink)}
+footer{font-size:14px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">World 1-1 · Wired 802.1X with EAP-TLS</div>
+      <h1>NetSec World</h1>
+      <p>Follow one laptop through certificate-based network access: EAPOL to the switch, RADIUS across the routed network and firewall, and a full mutual TLS handshake with ISE. Click any device or the moving packet to zoom in and inspect it.</p>
+    </div>
+    <div class="legend" aria-label="Packet colour legend">
+      <span><i style="background:var(--eapol)"></i>EAPOL (802.1X)</span>
+      <span><i style="background:var(--radius)"></i>RADIUS</span>
+      <span><i style="background:var(--tls)"></i>TLS inside EAP</span>
+      <span><i style="background:var(--ok)"></i>Accept</span>
+      <span><i style="background:var(--fail)"></i>Failure</span>
+    </div>
+  </header>
+
+  <section class="stage">
+    <div class="mapcol">
+      <div class="scen" role="group" aria-label="Scenario" id="scen"></div>
+      <div class="win mapbox">
+        <canvas id="map" width="1360" height="800" role="img" aria-label="Pixel art overworld map of the network: supplicant laptop, access switch NAD, router, firewall, and ISE RADIUS server in DC ISE World, with Wi-Fi AP in a desert and the Internet in Dino World DMZ."></canvas>
+        <div class="mapbar">
+          <button id="follow" aria-pressed="false">Follow packet</button>
+          <button id="zoomout">Whole map</button>
+        </div>
+        <div class="hint" id="hint">Click a device or packet</div>
+      </div>
+      <div class="win caption" aria-live="polite">
+        <div class="c1" id="cap1"></div>
+        <div class="c2" id="cap2"></div>
+        <div class="c3" id="cap3"></div>
+        <div class="out" id="out" hidden></div>
+      </div>
+      <div class="ctrl">
+        <button id="prev" aria-label="Previous step">◀ Prev</button>
+        <button id="pp">Pause</button>
+        <button id="nx" aria-label="Next step">Next ▶</button>
+        <button id="rs">Restart</button>
+        <span class="lbl">Speed</span>
+        <div class="seg" role="group" aria-label="Speed" id="speed">
+          <button data-s="0.25">¼×</button><button data-s="0.5">½×</button><button data-s="1" aria-pressed="true">1×</button><button data-s="2">2×</button>
+        </div>
+      </div>
+    </div>
+    <aside class="win insp" id="insp" aria-live="polite"></aside>
+  </section>
+
+  <section class="sec">
+    <h2>The full conversation</h2>
+    <p class="lead">Every message in the current scenario, laid out as a ladder between the three parties. Click a row to jump the map to that message.</p>
+    <div class="win ladder"><div class="lanes" id="ladder"></div></div>
+  </section>
+
+  <section class="sec">
+    <h2>Episodes</h2>
+    <p class="lead">NetSec World is a series. Each world on the map unlocks a new lesson, and this first episode covers the wired path to DC ISE World.</p>
+    <div class="eps">
+      <div class="win ep now"><span class="tag">Now playing</span><h3>1-1 · Wired 802.1X with EAP-TLS</h3><p class="zone">Grasslands → Router lake → Firewall → DC ISE World</p><p>EAPOL, RADIUS encapsulation, the mutual TLS handshake, certificate checks, VLAN assignment and four ways it fails.</p></div>
+      <div class="win ep locked"><span class="tag">Locked</span><h3>1-2 · Wi-Fi: EAP-TLS and the 4-way handshake</h3><p class="zone">Desert RF World</p><p>The same EAP-TLS over 802.11, then the MPPE keys become the PMK for the 4-way handshake. WPA3-Enterprise and 192-bit mode.</p></div>
+      <div class="win ep locked"><span class="tag">Locked</span><h3>1-3 · RadSec and cloud RADIUS</h3><p class="zone">Dino World DMZ</p><p>RADIUS over TLS on TCP 2083 across untrusted networks, why plain UDP RADIUS should never cross the Internet, and DMZ proxy design.</p></div>
+      <div class="win ep locked"><span class="tag">Locked</span><h3>1-4 · ??? from the lake</h3><p class="zone">Router lake</p><p>Something surfaces mid-session and changes a port's access without the user reconnecting. Hint: UDP 1700 and 3799.</p></div>
+      <div class="win ep locked"><span class="tag">Locked</span><h3>1-5 · Cloud Access World</h3><p class="zone">The cloud over the northern sea</p><p>Coming soon. Authentication and access from the cloud side of the network.</p></div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2>Check your understanding</h2>
+    <p class="lead">Six questions on what you just watched. <span class="score" id="score"></span></p>
+    <div class="quiz" id="quiz"></div>
+  </section>
+
+  <footer>Addresses, names and identifiers are illustrative examples. The handshake shown is EAP-TLS with TLS 1.2 (RFC 5216); EAP-TLS 1.3 (RFC 9190) shortens the flight but keeps the same roles.</footer>
+</div>
+
+<script>
+/* ---------------- data ---------------- */
+const C={eapol:'#E83838',radius:'#F8B800',tls:'#A050F8',ok:'#30D058',fail:'#F86060'};
+const UP=['NR','RF','FA'],DOWN=['-FA','-RF','-NR'],TOFW=['NR','RF'];
+const MAC_PC='00:1A:2B:3C:4D:5E',MAC_SW='70:10:6F:A1:00:0C';
+const STATE='ReauthSession:0A0A630200000012A4F3C1D2';
+const ID='host/laptop-042.corp.example';
+const ethUp={n:'Ethernet II',k:'eth',f:[['Destination','01:80:C2:00:00:03 (PAE group address)'],['Source',MAC_PC+' (laptop)'],['EtherType','0x888E (EAPOL)']]};
+const ethDn={n:'Ethernet II',k:'eth',f:[['Destination','01:80:C2:00:00:03 (PAE group address)'],['Source',MAC_SW+' (Gi1/0/12)'],['EtherType','0x888E (EAPOL)']]};
+const ipUp={n:'IPv4 + UDP',k:'ip',f:[['Source','10.10.99.2 : 51000 (NAS-IP)'],['Destination','10.50.1.10 : 1812 (ISE PSN)'],['Path','Router → Firewall → DC']]};
+const ipDn={n:'IPv4 + UDP',k:'ip',f:[['Source','10.50.1.10 : 1812 (ISE PSN)'],['Destination','10.10.99.2 : 51000 (NAD)'],['Path','DC → Firewall → Router']]};
+const eapol=t=>({n:'EAPOL',k:'eapol',f:[['Version','2 (802.1X-2004)'],['Type',t]]});
+const E0=eapol('0 · EAP-Packet');
+const eap=(code,id,type,more)=>({n:'EAP',k:'eap',f:[['Code',code],['Identifier',String(id)]].concat(type?[['Type',type]]:[]).concat(more||[])});
+const tls=recs=>({n:'TLS records (inside EAP-TLS)',k:'tls',f:recs});
+const MA=['Message-Authenticator','HMAC-MD5 over the packet, keyed with the shared secret'];
+const reqAV=st=>[['User-Name',ID],['Service-Type','Framed (2)'],['Framed-MTU','1500'],['NAS-IP-Address','10.10.99.2'],['NAS-Port-Type','Ethernet (15)'],['NAS-Port-Id','GigabitEthernet1/0/12'],['Calling-Station-Id','00-1A-2B-3C-4D-5E'],['Called-Station-Id','70-10-6F-A1-00-0C']].concat(st?[['State',st]]:[]).concat([['EAP-Message','EAP packet, shown below'],MA]);
+const chAV=()=>[['State',STATE],['Session-Timeout','30'],['EAP-Message','EAP packet, shown below'],MA];
+const rad=(code,id,avp)=>({n:'RADIUS',k:'rad',f:[['Code',code],['Identifier',String(id)],['Authenticator','16 random bytes']],avp:avp});
+const acceptAV=[['User-Name',ID],['Class','CACS:0A0A630200000012A4F3C1D2:ise-psn01'],['Tunnel-Type','VLAN (13)'],['Tunnel-Medium-Type','IEEE-802 (6)'],['Tunnel-Private-Group-ID','20'],['MS-MPPE-Send-Key','32 bytes, encrypted with the shared secret'],['MS-MPPE-Recv-Key','32 bytes, encrypted with the shared secret'],['EAP-Message','EAP-Success'],MA];
+const SERVER_CERT={t:'Server certificate · ISE EAP identity',f:[['Subject','CN=ise-psn01.corp.example'],['SAN','DNS:ise-psn01.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-03-02 → 2028-03-01'],['Key','RSA 2048 · SHA-256 signature'],['EKU','Server Authentication (1.3.6.1.5.5.7.3.1)']],by:'Checked by the supplicant',ok:['Chains to Corp Root CA in the trust store','Name is in the allowed server list','Inside its validity period']};
+const BAD_SERVER_CERT=Object.assign({},SERVER_CERT,{bad:1,ok:null,x:['Issuer chain ends at a root the laptop does not trust','Or the name is not in the allowed server list']});
+const CLIENT_CERT={t:'Client certificate · machine identity',f:[['Subject','CN=laptop-042.corp.example'],['SAN','DNS:laptop-042.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-01-15 → 2027-01-15'],['Key','RSA 2048 · private key held in the TPM'],['EKU','Client Authentication (1.3.6.1.5.5.7.3.2)']],by:'Checked by ISE',ok:['Chains to a CA in the ISE trusted store','Inside its validity period','Not revoked (OCSP or CRL)','CertificateVerify proves the laptop holds the private key']};
+const EXP_CERT=Object.assign({},CLIENT_CERT,{bad:1,f:CLIENT_CERT.f.map(p=>p[0]=='Valid'?['Valid','2024-10-01 → 2025-10-01 (expired)']:p),ok:['Chains to a CA in the ISE trusted store'],x:['notAfter 2025-10-01 is in the past']});
+
+const tCH=tls([['ClientHello','TLS 1.2 · client random · cipher suites incl. ECDHE-RSA-AES256-GCM-SHA384']]);
+const tSH=tls([['ServerHello','Picks ECDHE-RSA-AES256-GCM-SHA384 · server random'],['Certificate','ise-psn01 + Corp Issuing CA 01'],['ServerKeyExchange','ECDHE public key, signed with the server key'],['CertificateRequest','Asks for a client certificate, lists acceptable CAs'],['ServerHelloDone','End of server flight']]);
+const tCC=tls([['Certificate','laptop-042 + Corp Issuing CA 01'],['ClientKeyExchange','Client ECDHE public key'],['CertificateVerify','Signature over the handshake with the client private key'],['ChangeCipherSpec','Switch to the negotiated keys'],['Finished','First message protected by the new keys']]);
+const tFin=tls([['ChangeCipherSpec','Switch to the negotiated keys'],['Finished','Proves ISE derived the same keys']]);
+
+const S1={n:'EAPOL-Start',p:'Laptop → NAD',lane:['S','N'],seg:[{k:['SN'],c:C.eapol}],
+ d:'The laptop links up and announces itself. The port is unauthorised, so the switch only accepts EAPOL frames from it.',
+ lan:[ethUp,eapol('1 · EAPOL-Start')],
+ tip:'EAPOL-Start is optional. Most switches also send EAP-Request/Identity on their own as soon as the link comes up. Before authorisation the port drops everything except EAPOL (plus link protocols such as CDP and STP).'};
+const S2={n:'EAP-Request / Identity',p:'NAD → Laptop',lane:['N','S'],seg:[{k:['-SN'],c:C.eapol}],
+ d:'The switch, acting as authenticator, asks the supplicant to identify itself.',
+ lan:[ethDn,E0,eap('1 · Request',1,'1 · Identity')],
+ tip:'The destination is the PAE group address 01:80:C2:00:00:03. Bridges never forward it, so EAPOL can only ever travel one hop.'};
+const S3={n:'EAP-Response / Identity → Access-Request',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:[{k:['SN'],c:C.eapol},{k:UP,c:C.radius}],
+ d:'The laptop answers with its identity. The NAD lifts the EAP packet out of EAPOL, places it in an EAP-Message attribute and sends a RADIUS Access-Request to ISE on UDP 1812.',
+ lan:[ethUp,E0,eap('2 · Response',1,'1 · Identity',[['Identity',ID]])],
+ rad:[ipUp,rad('1 · Access-Request',37,reqAV()),eap('2 · Response',1,'1 · Identity',[['Identity',ID]])],
+ tip:'This is the key re-encapsulation. The NAD does not understand EAP methods. It relays the EAP payload unchanged and adds attributes that describe the port, such as NAS-Port-Id and Calling-Station-Id.'};
+const S4={n:'Access-Challenge → EAP-TLS Start',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.radius},{k:['-SN'],c:C.eapol}],
+ d:'ISE chooses EAP-TLS and replies with Access-Challenge. The NAD unwraps it and sends the EAP-TLS Start to the laptop.',
+ rad:[ipDn,rad('11 · Access-Challenge',37,chAV()),eap('1 · Request',2,'13 · EAP-TLS',[['Flags','0x20 · Start']])],
+ lan:[ethDn,E0,eap('1 · Request',2,'13 · EAP-TLS',[['Flags','0x20 · Start']])],
+ tip:'The State attribute is ISE\'s session handle. The NAD must copy it back into the next Access-Request so ISE can match each round trip to this conversation.'};
+const S5={n:'TLS ClientHello',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:[{k:['SN'],c:C.tls},{k:UP,c:C.tls}],
+ d:'The laptop starts the TLS handshake. The ClientHello rides inside EAP-TLS, inside EAPOL, then inside RADIUS.',
+ lan:[ethUp,E0,eap('2 · Response',2,'13 · EAP-TLS',[['Flags','0x00']]),tCH],
+ rad:[ipUp,rad('1 · Access-Request',38,reqAV(STATE)),eap('2 · Response',2,'13 · EAP-TLS',[['Flags','0x00']]),tCH],
+ tip:'Three layers of tunnelling at once. The switch and the firewall forward this TLS handshake without being able to read or alter it.'};
+const S6={n:'ServerHello, Certificate, CertificateRequest',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.tls},{k:['-SN'],c:C.tls}],
+ d:'ISE presents its certificate and asks the laptop for one too. The supplicant checks the server certificate before going any further.',
+ rad:[ipDn,rad('11 · Access-Challenge',38,chAV()),eap('1 · Request',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tSH],
+ lan:[ethDn,E0,eap('1 · Request',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tSH],
+ cert:SERVER_CERT,
+ tip:'A certificate chain is bigger than one RADIUS packet allows (Framed-MTU 1500), so this flight is really split into several EAP-TLS fragments, each acknowledged by an empty response. The animation shows them as one.'};
+const S7={n:'Certificate, ClientKeyExchange, CertificateVerify, Finished',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:[{k:['SN'],c:C.tls},{k:UP,c:C.tls}],
+ d:'The laptop sends its own certificate and signs the handshake with its private key, proving it really owns the certificate.',
+ lan:[ethUp,E0,eap('2 · Response',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tCC],
+ rad:[ipUp,rad('1 · Access-Request',39,reqAV(STATE)),eap('2 · Response',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tCC],
+ cert:CLIENT_CERT,
+ tip:'The certificate on its own proves nothing, because certificates are public. CertificateVerify is the proof: only the holder of the private key can produce that signature. Like the server flight, this one is normally split into several EAP-TLS fragments.'};
+const S8={n:'ChangeCipherSpec, Finished',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.tls},{k:['-SN'],c:C.tls}],
+ d:'ISE accepts the client certificate and finishes the handshake. Both sides now hold the same master secret.',
+ rad:[ipDn,rad('11 · Access-Challenge',39,chAV()),eap('1 · Request',4,'13 · EAP-TLS',[['Flags','0x00']]),tFin],
+ lan:[ethDn,E0,eap('1 · Request',4,'13 · EAP-TLS',[['Flags','0x00']]),tFin],
+ tip:'Mutual authentication is complete at this point: the laptop has verified ISE and ISE has verified the laptop.'};
+const S9={n:'EAP-TLS acknowledgement',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:[{k:['SN'],c:C.tls},{k:UP,c:C.tls}],
+ d:'The laptop sends an empty EAP-TLS response to confirm it received ISE\'s Finished message.',
+ lan:[ethUp,E0,eap('2 · Response',4,'13 · EAP-TLS',[['Flags','0x00 · no TLS data']])],
+ rad:[ipUp,rad('1 · Access-Request',40,reqAV(STATE)),eap('2 · Response',4,'13 · EAP-TLS',[['Flags','0x00 · no TLS data']])],
+ tip:'EAP is lock-step: every Request needs a Response. This empty one closes out the handshake so ISE can make its decision.'};
+const S10={n:'Access-Accept → EAP-Success',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.ok},{k:['-SN'],c:C.ok}],final:'ok',
+ d:'ISE matches its authorisation policy and sends Access-Accept with VLAN 20 and the session keys. The NAD authorises the port and tells the laptop EAP-Success.',
+ rad:[ipDn,rad('2 · Access-Accept',40,acceptAV),eap('3 · Success',4)],
+ lan:[ethDn,E0,eap('3 · Success',4)],
+ tip:'The MPPE keys matter little on a wired port without MACsec, but on Wi-Fi they become the PMK for the 4-way handshake. That is Episode 1-2.'};
+
+const X8={n:'TLS Alert: certificate_expired',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.fail},{k:['-SN'],c:C.fail}],
+ d:'ISE validates the client certificate, finds it expired, and aborts the handshake with a fatal TLS alert.',
+ rad:[ipDn,rad('11 · Access-Challenge',39,chAV()),eap('1 · Request',4,'13 · EAP-TLS'),tls([['Alert','Fatal · certificate_expired (45)']])],
+ lan:[ethDn,E0,eap('1 · Request',4,'13 · EAP-TLS'),tls([['Alert','Fatal · certificate_expired (45)']])],
+ tip:'Validity is checked against ISE\'s clock, so a wrong NTP setting on the server produces exactly the same failure. The usual fix is certificate auto-enrolment with renewal well before expiry.'};
+const X9={n:'EAP-TLS acknowledgement',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:[{k:['SN'],c:C.fail},{k:UP,c:C.fail}],
+ d:'The laptop acknowledges the alert so the EAP conversation can close cleanly.',
+ lan:[ethUp,E0,eap('2 · Response',4,'13 · EAP-TLS',[['Flags','0x00 · no TLS data']])],
+ rad:[ipUp,rad('1 · Access-Request',40,reqAV(STATE)),eap('2 · Response',4,'13 · EAP-TLS',[['Flags','0x00 · no TLS data']])],
+ tip:'ISE Live Logs record the failure with the reason and the certificate details, which is the first place to look.'};
+const rej=(id,eid,why)=>({n:'Access-Reject → EAP-Failure',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.fail},{k:['-SN'],c:C.fail}],final:'fail',
+ d:'ISE sends Access-Reject. The NAD relays EAP-Failure and the port stays unauthorised.',
+ rad:[ipDn,rad('3 · Access-Reject',id,[['EAP-Message','EAP-Failure'],MA]),eap('4 · Failure',eid)],
+ lan:[ethDn,E0,eap('4 · Failure',eid)],tip:why});
+const U7={n:'TLS Alert: unknown_ca',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:[{k:['SN'],c:C.fail},{k:UP,c:C.fail}],
+ d:'The laptop cannot validate the ISE certificate, so it refuses to continue and sends a fatal TLS alert. It never sends its own certificate.',
+ lan:[ethUp,E0,eap('2 · Response',3,'13 · EAP-TLS'),tls([['Alert','Fatal · unknown_ca (48)']])],
+ rad:[ipUp,rad('1 · Access-Request',39,reqAV(STATE)),eap('2 · Response',3,'13 · EAP-TLS'),tls([['Alert','Fatal · unknown_ca (48)']])],
+ cert:BAD_SERVER_CERT,
+ tip:'This is the supplicant protecting itself from a rogue authentication server. The fix lives on the client: deploy the root CA and list the allowed server names in the 802.1X profile, usually by Group Policy or MDM.'};
+const F3={n:'Access-Request dropped at the firewall',p:'Laptop → NAD → Firewall ✕',lane:['S','N','F'],seg:[{k:['SN'],c:C.eapol},{k:TOFW,c:C.radius,end:'drop'}],
+ d:'The NAD sends the Access-Request, but the firewall has no rule for UDP 1812 from the switch management subnet and drops it.',
+ lan:S3.lan,rad:S3.rad,
+ tip:'The firewall log shows a deny for 10.10.99.2 → 10.50.1.10 udp/1812. Remember accounting on 1813 and Change of Authorization from ISE back to the NAD on UDP 1700 (Cisco) or 3799 (RFC 5176).'};
+const F4={n:'Retransmission, dropped again',p:'NAD → Firewall ✕',lane:['N','F'],seg:[{k:TOFW,c:C.radius,end:'drop'}],
+ d:'With no reply after the RADIUS timeout, the NAD retransmits the same request. It meets the same fate.',
+ rad:S3.rad,
+ tip:'A retransmission keeps the same RADIUS Identifier (37) so the server can spot duplicates. On Cisco IOS the defaults are a 5 second timeout and 3 retransmits.'};
+const timeout=why=>({n:'RADIUS server marked dead',p:'NAD gives up',lane:['N'],seg:[],final:'fail',wait:1,
+ d:'After the last retransmit the NAD marks the server dead. The laptop never hears back and the port stays unauthorised.',tip:why});
+const K3={n:'Access-Request silently discarded by ISE',p:'Laptop → NAD → ISE ✕',lane:['S','N','A'],seg:[{k:['SN'],c:C.eapol},{k:UP,c:C.radius,end:'discard'}],
+ d:'The request reaches ISE, but its Message-Authenticator does not verify with the shared secret ISE holds for this switch, so ISE discards it without replying.',
+ lan:S3.lan,rad:S3.rad,
+ tip:'RADIUS never answers a packet it cannot authenticate, because a reply would help an attacker. From the switch this looks identical to a firewall drop. The ISE report for the network device is what tells them apart.'};
+const K4={n:'Retransmission, discarded again',p:'NAD → ISE ✕',lane:['N','A'],seg:[{k:UP,c:C.radius,end:'discard'}],
+ d:'The NAD retransmits the same request with the same wrong key. ISE discards it again.',rad:S3.rad,
+ tip:'Fix the key in both places: the radius server definition on the switch and the network device entry in ISE.'};
+
+const SCEN=[
+ {id:'ok',n:'Happy path',steps:[S1,S2,S3,S4,S5,S6,S7,S8,S9,S10],out:'Port authorised · VLAN 20'},
+ {id:'exp',n:'Expired client cert',bad:1,steps:[S1,S2,S3,S4,S5,S6,Object.assign({},S7,{cert:EXP_CERT}),X8,X9,rej(40,4,'The port stays unauthorised. If an authentication-fail VLAN is configured on the NAD, the laptop lands there instead.')],out:'Access-Reject · certificate expired'},
+ {id:'ca',n:'Untrusted server cert',bad:1,steps:[S1,S2,S3,S4,S5,Object.assign({},S6,{cert:BAD_SERVER_CERT}),U7,rej(39,3,'ISE Live Logs show a TLS alert sent by the client, meaning the client rejected the ISE certificate. It is not a problem with the client certificate. Many "ISE rejected my laptop" tickets are really this.')],out:'EAP-Failure · supplicant rejected ISE'},
+ {id:'fw',n:'Firewall blocks 1812',bad:1,steps:[S1,S2,F3,F4,timeout('With critical authentication configured, the NAD can put the port in a critical VLAN while every RADIUS server is dead. Otherwise the user simply has no network.')],out:'Timeout · RADIUS never reached ISE'},
+ {id:'key',n:'Shared secret mismatch',bad:1,steps:[S1,S2,K3,K4,timeout('Same symptom as the firewall drop: a timeout on the switch. Check the ISE report for the network device before chasing firewall rules.')],out:'Timeout · ISE discarded the request'}
+];
+
+const NODEINFO={
+ S:{t:'Supplicant · laptop-042',sub:'Wants network access',facts:['Runs the 802.1X supplicant: Windows Wired AutoConfig, macOS eapolclient or wpa_supplicant on Linux.','Holds a machine certificate with its private key protected in the TPM.','Trusts Corp Root CA and only talks to servers named ise-psn01.corp.example.','Speaks EAP over EAPOL, one hop, directly to the switch port.'],
+  code:'<span class="cm"># What the 802.1X profile enforces</span>\nEAP method        : EAP-TLS (smart card or other cert)\nClient cert       : CN=laptop-042.corp.example\nTrusted root CA   : Corp Root CA\nConnect to servers: ise-psn01.corp.example\nAuth mode         : Computer authentication'},
+ N:{t:'Authenticator · SW-ACC-01',sub:'The NAD: network access device',facts:['Controls the port: only EAPOL until RADIUS says yes.','Relays EAP between EAPOL and RADIUS without understanding EAP-TLS.','Adds port context: NAS-Port-Id, Calling-Station-Id, NAS-IP-Address.','Applies the result, such as the VLAN in Tunnel-Private-Group-ID.'],
+  code:'aaa new-model\naaa authentication dot1x default group ISE\naaa authorization network default group ISE\naaa accounting dot1x default start-stop group ISE\ndot1x system-auth-control\n!\nradius server ISE-PSN01\n address ipv4 10.50.1.10 auth-port 1812 acct-port 1813\n key <span class="cm">&lt;shared secret&gt;</span>\naaa group server radius ISE\n server name ISE-PSN01\nip radius source-interface Vlan99\n!\ninterface GigabitEthernet1/0/12\n switchport mode access\n authentication port-control auto\n dot1x pae authenticator'},
+ R:{t:'Router · CORE-RTR-01',sub:'Just another hop for RADIUS',facts:['RADIUS is ordinary UDP, so it is routed like any other traffic.','The NAD sources RADIUS from its management SVI, 10.10.99.2.','Large Access-Challenge packets carrying a certificate chain can approach the path MTU. Framed-MTU on the NAD keeps EAP fragments small enough.'],
+  code:'<span class="cm"># Route the NAD management subnet to the DC</span>\nip route 10.50.1.0 255.255.255.0 10.0.0.2'},
+ F:{t:'Firewall · DC-EDGE-FW',sub:'Must permit RADIUS both ways',facts:['Authentication on UDP 1812 and accounting on UDP 1813, NAD to ISE.','Change of Authorization runs the other way, ISE to NAD, on UDP 1700 (Cisco) or 3799 (RFC 5176).','Missing rules show up on the switch as a dead RADIUS server.'],
+  code:'rule src             dst            svc       action\n10   10.10.99.0/24   10.50.1.10     udp/1812  permit  <span class="cm"># auth</span>\n11   10.10.99.0/24   10.50.1.10     udp/1813  permit  <span class="cm"># accounting</span>\n12   10.50.1.10      10.10.99.0/24  udp/1700  permit  <span class="cm"># CoA</span>\n99   any             any            any       deny log'},
+ A:{t:'Authentication server · ISE',sub:'DC ISE World, policy service node ise-psn01',facts:['Terminates the TLS tunnel and validates the client certificate.','Must know the NAD as a network device, with the same shared secret.','Policy decides the outcome and returns attributes such as the VLAN.'],
+  code:'Network device : SW-ACC-01   10.10.99.2   secret ********\nPolicy set     : Wired_802.1X\n Authentication: EAP-TLS → Certificate profile (CN)\n Authorization :\n  IF Certificate Issuer CN = Corp Issuing CA 01\n  AND AD group = Domain Computers\n  THEN Corp_Wired_VLAN20\n       (Access-Accept, Tunnel-Private-Group-ID = 20)\nEAP certificate: ise-psn01.corp.example'},
+ W:{t:'Wi-Fi AP · Desert RF World',sub:'Locked until Episode 1-2',facts:['The AP is the authenticator for wireless clients, often via a WLAN controller.','EAP-TLS runs exactly as on the wire, then the MPPE keys seed the 4-way handshake.','The radio telescope is a reminder that everything here travels as RF.'],code:''},
+ C:{t:'Cloud Access World',sub:'Locked · a future episode',facts:['A floating world above the northern sea, reserved for a later lesson.','Its pad is locked until that episode is released.'],code:''},
+ I:{t:'Internet · Dino World DMZ',sub:'Locked until Episode 1-3',facts:['Plain RADIUS over UDP should never cross the Internet.','RadSec carries RADIUS inside TLS on TCP 2083.','Proxies in the DMZ keep the dinosaurs outside the data centre.'],code:''}
+};
+
+const QUIZ=[
+ {q:'Which device relays the TLS handshake without being able to read it?',o:['The supplicant','The NAD (switch)','ISE'],a:1,e:'The NAD only moves the EAP payload between EAPOL and RADIUS. The TLS session is between the laptop and ISE.'},
+ {q:'Which RADIUS attribute carries the EAP packet between the NAD and ISE?',o:['State','Class','EAP-Message','Calling-Station-Id'],a:2,e:'EAP-Message (type 79) carries the EAP payload. Message-Authenticator must accompany it.'},
+ {q:'What lets ISE match each Access-Request to the right ongoing conversation?',o:['The State attribute echoed by the NAD','The UDP source port','The EAP Type field'],a:0,e:'ISE hands out State in each Access-Challenge and the NAD returns it in the next Access-Request.'},
+ {q:'Which part of the handshake proves the laptop owns its certificate?',o:['Sending the Certificate message','CertificateVerify','ClientHello'],a:1,e:'Certificates are public. Only the private key holder can sign the handshake in CertificateVerify.'},
+ {q:'A switch shows the RADIUS server as dead. Which two causes from this map look identical from the switch?',o:['Expired client cert and untrusted server cert','Firewall drop and shared secret mismatch','Wrong VLAN and wrong EKU'],a:1,e:'In both cases the switch never gets a reply. ISE reports tell them apart.'},
+ {q:'Before authorisation, what does the switch port accept from the laptop?',o:['Only EAPOL frames (EtherType 0x888E) and link protocols','DHCP and DNS only','Everything, but in a guest VLAN'],a:0,e:'An unauthorised 802.1X port passes EAPOL and link-layer protocols only, unless other features are configured.'}
+];
+
+/* ---------------- scene setup ---------------- */
+const mc=document.getElementById('map'),m=mc.getContext('2d');
+const sc=document.createElement('canvas');sc.width=680;sc.height=400;const g=sc.getContext('2d');
+const P=2,W=340,H=200,CH=6;
+const bgc=document.createElement('canvas');bgc.width=680;bgc.height=400;const b=bgc.getContext('2d');
+const hs=(x,y)=>{const s=Math.sin(x*127.1+y*311.7)*43758.5453;return s-Math.floor(s);};
+const sm=t=>t*t*(3-2*t);
+const vn=(x,y)=>{const xi=Math.floor(x),yi=Math.floor(y),xf=sm(x-xi),yf=sm(y-yi),a=hs(xi,yi),b2=hs(xi+1,yi),c=hs(xi,yi+1),d=hs(xi+1,yi+1);return a+(b2-a)*xf+(c-a)*yf+(a-b2-c+d)*xf*yf;};
+const EL=[[80,130,64,44],[180,120,80,48],[250,110,60,44],[272,154,54,28],[289,156,46,32],[238,168,34,22],[284,66,54,34],[60,90,36,24],[100,95,30,20],[215,78,36,20]];
+const fld=(x,y,L)=>{let mm=-9;for(const e of L){const v=1-(((x-e[0])/e[2])**2+((y-e[1])/e[3])**2);if(v>mm)mm=v;}return mm;};
+const LA=new Uint8Array(W*H),QA=new Uint8Array(W*H),CK=new Uint8Array(W*H),QK=new Uint8Array(W*H),PM=new Uint8Array(W*H);
+const inb=(x,y)=>x>=0&&y>=0&&x<W&&y<H;
+for(let y=0;y<H;y++)for(let x=0;x<W;x++)LA[y*W+x]=fld(x,y,EL)+(vn(x/14,y/14)-.5)*.35+(vn(x/5,y/5)-.5)*.1>0?1:0;
+const land=(x,y)=>inb(x,y)&&LA[y*W+x]==1;
+for(let y=0;y<H;y++)for(let x=0;x<W;x++)QA[y*W+x]=land(x,y)&&fld(x,y,[[290,56,40,20]])+(vn(x/6+50,y/6)-.5)*.3>0?1:0;
+const plat=(x,y)=>inb(x,y)&&QA[y*W+x]==1;
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=y*W+x;if(!LA[i]){for(let k=1;k<=CH;k++)if(land(x,y-k)){CK[i]=k;break;}}else if(!QA[i]){for(let k=1;k<=CH;k++)if(plat(x,y-k)){QK[i]=k;break;}}}
+const nonw=(x,y)=>!inb(x,y)||LA[y*W+x]||CK[y*W+x];
+const ICE=(x,y)=>x+(vn(x/9+20,y/9)-.5)*14>248&&y+(vn(x/9,y/9+20)-.5)*12<92;
+const DES=(x,y)=>x+(vn(x/8+40,y/8)-.5)*14<104&&y+(vn(x/8,y/8+40)-.5)*10<112;
+const FX0=216,FX1=326,FY0=126,FY1=184;
+const DMZ=(x,y)=>x>FX0&&x<FX1&&y>FY0&&y<FY1+2;
+const NODES={S:[44,140],N:[110,140],R:[170,96],F:[230,96],A:[292,56],W:[56,80],I:[292,156],C:[192,22]};
+const PATHS={SN:[[44,140],[110,140]],NR:[[110,140],[140,140],[140,96],[170,96]],RF:[[170,96],[230,96]],FA:[[230,96],[260,96],[260,56],[292,56]],NW:[[110,140],[110,110],[56,110],[56,80]],FI:[[230,96],[230,116],[292,116],[292,156]]};
+function stamp(x,y,rd){for(let j=-rd;j<=rd;j++)for(let i=-rd;i<=rd;i++)if(inb(x+i,y+j))PM[(y+j)*W+x+i]=1;}
+for(const k in PATHS){const p=PATHS[k];for(let s=0;s<p.length-1;s++){const a=p[s],c=p[s+1];const L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let t=0;t<=L;t++)stamp(a[0]+Math.sign(c[0]-a[0])*t,a[1]+Math.sign(c[1]-a[1])*t,4);}}
+for(const k in NODES)stamp(NODES[k][0],NODES[k][1],12);
+const rcx=y=>92+5*Math.sin(y/9)+2*Math.sin(y/4);
+const ell=(x,y,cx,cy,rx,ry)=>((x-cx)/rx)**2+((y-cy)/ry)**2;
+const LK=[178,128,24,12];
+function riv(x,y){if(!land(x,y)||plat(x,y))return 0;let e=ell(x,y,92,101,9,4.5);if(e<0.6)return 1;if(e<1)return 2;e=ell(x,y,LK[0],LK[1],LK[2],LK[3]);if(e<0.4)return 3;if(e<0.82)return 1;if(e<1)return 2;if(y>=103&&y<185){const d=Math.abs(x-rcx(y));if(d<=2.2)return 1;if(d<=3.2)return 2;}return 0;}
+const bt=(x,y,c)=>{b.fillStyle=c;b.fillRect(x*P,y*P,P,P);};
+function cliffCol(x,k){if(k==1)return'#E0A050';if(k==CH)return'#4C2810';if(k==CH-1)return'#7C4018';if(hs(x,7)<0.25)return'#905020';return(x+k)%5==0?'#A86028':'#C07830';}
+function iceCol(x,k){if(k==1)return'#F8F8F8';if(k==CH)return'#284068';if(k==CH-1)return'#4870A8';if(hs(x,7)<0.25)return'#D0ECF8';return(x+k)%5==0?'#78A8E0':'#98C8F0';}
+const deep=[],shore=[],wf=[];
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+ const i=y*W+x;let c;
+ if(!LA[i]){
+  if(CK[i])c=ICE(x,y-CK[i])?iceCol(x,CK[i]):cliffCol(x,CK[i]);
+  else{let dmin=9;for(let j=-4;j<=4;j++)for(let k=-4;k<=4;k++)if(nonw(x+k,y+j)){const dd=Math.max(Math.abs(j),Math.abs(k));if(dd<dmin)dmin=dd;}
+   if(dmin==1)shore.push([x,y]);
+   if(dmin<=3)c=((x*2+y*3)%13==0)?'#58B0F0':'#48A0F0';
+   else if(dmin==4)c=(x+y)%2?'#48A0F0':'#2860D0';
+   else{c=((x>>2)+y)%17==0&&x%4<3?'#2C68D8':'#2058C8';if(hs(x,y)>0.988)deep.push([x,y,Math.floor(hs(y,x)*12)]);}
+   if(ICE(x,y)&&dmin>=2){const v=vn(x/4,y/4+7);if(v>0.74)c='#F0F8FC';else if(v>0.71)c='#A8C8E8';}}
+ }
+ else if(QK[i])c=iceCol(x,QK[i]);
+ else if(QA[i]){const n=vn(x/7,y/7);c=n>0.62?'#D8E4F4':(hs(x,y)>0.97?'#FFFFFF':'#F0F4FC');}
+ else if(ICE(x,y)){const n=vn(x/8,y/8);if(!land(x,y-3)||!land(x-3,y)||!land(x+3,y))c='#C8E0F0';else c=n>0.62?'#D0E0F0':(n<0.35?'#F4F8FC':'#E4ECF8');}
+ else if(DES(x,y)){if(!land(x,y-3)||!land(x-3,y)||!land(x+3,y))c='#F8E0A8';else{const n=vn(x/9+5,y/5),rip=Math.sin(x*0.35+y*0.9+n*6);c=rip>0.85?'#E0A858':(rip<-0.8?'#F8D898':(n>0.6?'#E8B868':'#F0C478'));}}
+ else if(!land(x,y-3)||!land(x-3,y)||!land(x+3,y))c=(x+y)%3==0?'#E0C080':'#F0D898';
+ else if(DMZ(x,y)){const n=vn(x/6+3,y/6);c=n>0.55?'#26783A':(hs(x,y)>0.95?'#1E6830':'#30904A');}
+ else{const n=vn(x/14+9,y/14);c=n>0.64?'#40A840':(n<0.33?'#60C858':'#50B848');}
+ bt(x,y,c);
+}
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+ const ic=ICE(x,y),ds=DES(x,y);
+ if(land(x,y)&&!land(x,y+1))bt(x,y,ic?'#6888B0':(ds?'#A06030':'#205820'));
+ if(plat(x,y)&&!plat(x,y+1))bt(x,y,'#6888B0');
+ else if(plat(x,y)&&(!plat(x-1,y)||!plat(x+1,y)||!plat(x,y-1)))bt(x,y,'#B8CCE8');
+ const rv=riv(x,y);
+ if(rv==3)bt(x,y,(x*3+y*5)%17==0?'#4888E8':'#3070D8');else if(rv==1)bt(x,y,(x+y+(y>>1))%6==0?'#88D0F8':'#58B0F8');else if(rv==2)bt(x,y,'#2858C0');
+ else if(land(x,y)){const e=ell(x,y,LK[0],LK[1],LK[2],LK[3]);if(e>=1&&e<1.28)bt(x,y,(x+y)%3==0?'#E0C080':'#F0D898');const e2=ell(x,y,92,101,9,4.5);if(e2>=1&&e2<1.5)bt(x,y,(x+y)%2?'#58B848':'#40A040');}
+ const i=y*W+x;if(CK[i]){const k=CK[i];const rt=riv(x,y-k);if(rt)wf.push([x,y,rt==2]);}
+}
+for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+ const i=y*W+x;if(!LA[i]||QA[i]||QK[i]||PM[i]||riv(x,y))continue;if(!land(x,y-3)||!land(x-3,y)||!land(x+3,y)||!land(x,y+1))continue;
+ if(ell(x,y,LK[0],LK[1],LK[2],LK[3])<1.35||ell(x,y,92,101,9,4.5)<1.6)continue;
+ const h=hs(x*3.1,y*1.7);
+ if(ICE(x,y)){if(h>0.985)bt(x,y,'#FFFFFF');else if(h>0.975){bt(x,y,'#98B0D0');bt(x+1,y,'#C8D8F0');}continue;}
+ if(DES(x,y)){if(h>0.985){bt(x,y,'#B07840');bt(x+1,y,'#8C5A2C');bt(x,y-1,'#D8A060');}else if(h<0.006){bt(x,y,'#A8B070');bt(x-1,y-1,'#A8B070');bt(x+1,y-1,'#A8B070');}continue;}
+ if(DMZ(x,y)){if(h>0.95){bt(x,y,'#1C6028');bt(x-1,y-1,'#58B050');bt(x+1,y-1,'#58B050');bt(x-2,y-2,'#1C6028');bt(x+2,y-2,'#1C6028');}continue;}
+ if(h>0.993){const f=hs(x,y+9);bt(x,y,f<0.33?'#F84848':f<0.66?'#F8E040':'#F8F8F8');bt(x,y+1,'#287828');}
+ else if(h>0.978){bt(x,y,'#2C902C');bt(x-1,y-1,'#2C902C');bt(x+1,y-1,'#2C902C');}
+ else if(h<0.004){bt(x,y,'#8888A0');bt(x+1,y,'#585870');bt(x,y-1,'#C8C8D8');}
+}
+for(let y=40;y<=50;y++)for(let x=302;x<=322;x++){const e=ell(x,y,312,45,9,3.6);if(e<1)bt(x,y,e>0.75?'#6890C8':((x-y)%7==0?'#F8FCFF':'#B8E0F8'));}
+[[162,124],[194,133],[186,120],[168,135]].forEach(([x,y],k)=>{bt(x-1,y,'#1E7A1E');bt(x,y,'#40A040');bt(x+1,y,'#40A040');bt(x,y-1,'#70D060');bt(x-1,y+1,'#1E7A1E');bt(x,y+1,'#1E7A1E');if(k==1)bt(x,y-1,'#F888C8');});
+[[153,128],[154,131],[203,126],[203,129],[172,141],[188,140],[160,138]].forEach(([x,y])=>{for(let j=0;j<5;j++)bt(x,y-j,'#2C7A2C');bt(x,y-5,'#7C4A20');bt(x,y-6,'#7C4A20');});
+for(let y=132;y<=142;y++)for(let x=195;x<=199;x++)bt(x,y,(x==195||x==199)?'#5C3010':(y%2?'#B87838':'#A06828'));
+function bridge(cx,y){cx=Math.round(cx);for(let x=cx-6;x<=cx+6;x++)for(let j=-3;j<=3;j++)bt(x,y+j,(j==-3||j==3)?'#5C3010':(x%2?'#B87838':'#A06828'));for(const px of[cx-7,cx+7])for(let j=-4;j<=4;j++)bt(px,y+j,'#3C2008');}
+bridge(rcx(140),140);bridge(rcx(110),110);
+for(let x=256;x<=264;x++)for(let y=36;y<100;y++)if(QK[y*W+x])bt(x,y,(x==256||x==264)?'#5870A0':(y%2?'#B8D0E8':'#E8F0F8'));
+function dots(pts,col){for(let i=0;i<pts.length-1;i++){const a=pts[i],c=pts[i+1],L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let s=5;s<L-4;s+=6){const x=a[0]+Math.sign(c[0]-a[0])*s,y=a[1]+Math.sign(c[1]-a[1])*s;b.fillStyle='#503010';b.fillRect((x-2)*P,(y-2)*P,4*P,4*P);b.fillStyle=col;b.fillRect((x-1)*P,(y-1)*P,2*P,2*P);b.fillStyle='#F8F8E8';b.fillRect((x-1)*P,(y-1)*P,P,P);}}}
+dots(PATHS.NW,'#A0A0A8');dots(PATHS.FI,'#A0A0A8');['SN','NR','RF','FA'].forEach(k=>dots(PATHS[k],'#F8D070'));
+function mountain(cx,by,s){const des=DES(cx,by-4),h=Math.round(28*s),hw=Math.round(16*s);for(let dx=-hw-2;dx<=hw+2;dx++)if(land(cx+dx,by+1))bt(cx+dx,by+1,des?'#C89048':'#2E8A2E');
+ for(let i=0;i<=h;i++){const y=by-h+i,half=Math.max(0,Math.round(i/h*hw+(i>2?(hs(cx,y)-.5)*1.6:0)));
+  for(let dx=-half;dx<=half;dx++){const x=cx+dx;let c;
+   if(Math.abs(dx)==half||i==0)c=des?'#5C2810':'#4A2C14';
+   else if(des){if(dx<0)c=dx==-1?'#F8C890':(i%5==0?'#D07838':'#F0A060');else c=hs(x*2,y)>0.85?'#7C3818':(i%5==0?'#904020':'#B85828');}
+   else if(i<h*0.32+(hs(x,3)-.5)*3)c=dx<0?'#F8F8F8':'#B8C8E8';
+   else if(dx<0)c=dx==-1?'#F0D0A0':((dx+i)%9==0?'#B88858':'#D0A070');
+   else c=hs(x*2,y)>0.85?'#6C4828':'#987048';
+   bt(x,y,c);}}}
+function hill(cx,by,s){const h=Math.round(9*s),hw=Math.round(13*s);for(let i=0;i<=h;i++){const y=by-h+i,t=(h-i)/h,half=Math.round(hw*Math.sqrt(Math.max(0,1-t*t)));for(let dx=-half;dx<=half;dx++){let c;if(Math.abs(dx)==half||i==0)c='#1C601C';else if(dx<-half*0.3&&i<h*0.6)c='#88E070';else if(dx>half*0.4)c='#389838';else c='#58C050';bt(cx+dx,y,c);}}}
+function treeD(x,y){for(let dx=-4;dx<=4;dx++)bt(x+dx,y,'#2E8A2E');bt(x,y-1,'#704020');bt(x,y-2,'#704020');bt(x-1,y-2,'#704020');
+ for(let dy=-5;dy<=5;dy++)for(let dx=-5;dx<=5;dx++){const d2=dx*dx+dy*dy;if(d2>25)continue;bt(x+dx,y-8+dy,d2>17?'#104810':(dx+dy<-3?'#70D058':(dx+dy>3?'#1E7A1E':'#30A030')));}}
+function treeP(x,y,snow){for(let dx=-3;dx<=3;dx++)bt(x+dx,y,snow?'#B8CCE8':'#2E8A2E');bt(x,y-1,'#5A3010');bt(x,y-2,'#5A3010');
+ for(let t=0;t<3;t++)for(let j=0;j<5;j++){const yy=y-3-t*4-j,half=Math.round((6-t*1.6)*(1-j/5));for(let dx=-half;dx<=half;dx++){let c=Math.abs(dx)==half?'#0C3C20':(dx<0?'#2C9048':'#18683A');if(snow&&(j>=3||(j==2&&dx<0))&&Math.abs(dx)<half)c=dx<0?'#FFFFFF':'#D0E0F4';if(snow&&Math.abs(dx)==half)c='#0C2C30';bt(x+dx,yy,c);}}bt(x,y-18,snow?'#FFFFFF':'#0C3C20');}
+function palm(x,y,sand){for(let dx=-3;dx<=3;dx++)bt(x+dx,y,sand?'#C89048':'#1E6830');for(let i=0;i<14;i++){const tx=x+Math.round(i*i*0.02);bt(tx,y-i,'#181818');bt(tx+1,y-i,i%2?'#8C5A2C':'#B07838');bt(tx+2,y-i,'#181818');}
+ const tx=x+4,ty=y-14;[[-1,0],[1,0],[-1,0.5],[1,0.5],[-0.4,-1],[0.4,-1]].forEach(([dx,dy])=>{for(let k=1;k<=7;k++){const fx=Math.round(tx+dx*k),fy=Math.round(ty+dy*k+(Math.abs(dx)>0.5?k*k*0.06:0));bt(fx,fy,'#0C3C20');bt(fx,fy-1,k<6?'#48B048':'#2C8038');}});bt(tx,ty,'#704020');bt(tx+1,ty+1,'#704020');}
+function bush(x,y){for(let dy=-4;dy<=3;dy++)for(let dx=-6;dx<=6;dx++){const e=(dx/6.5)**2+(dy/4.5)**2;if(e>1)continue;bt(x+dx,y-4+dy,e>0.7?'#0C3C20':(dx+dy<-3?'#3C9C48':'#1E6830'));}}
+function cactus(x,y,s){const h=Math.round(11*s);for(let dx=-2;dx<=2;dx++)bt(x+dx,y,'#C89048');for(let j=1;j<=h;j++){bt(x-2,y-j,'#0C3C20');bt(x-1,y-j,'#68C070');bt(x,y-j,'#3C9C48');bt(x+1,y-j,'#0C3C20');}bt(x-1,y-h-1,'#0C3C20');bt(x,y-h-1,'#0C3C20');
+ const arm=(ax,ay,dir,up)=>{for(let k=1;k<=2;k++){bt(ax+dir*k,ay,'#3C9C48');bt(ax+dir*k,ay+1,'#0C3C20');}for(let j=0;j<up;j++){bt(ax+dir*3,ay-j,'#3C9C48');bt(ax+dir*3-1,ay-j,dir<0?'#0C3C20':'#68C070');bt(ax+dir*3+1,ay-j,'#0C3C20');}bt(ax+dir*3,ay-up,'#0C3C20');};arm(x-1,y-Math.round(h*0.45),-1,4);arm(x,y-Math.round(h*0.6),1,3);bt(x,y-h,'#F8A0C0');}
+function line(x0,y0,x1,y1,c){const n=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));for(let i=0;i<=n;i++)bt(Math.round(x0+(x1-x0)*i/n),Math.round(y0+(y1-y0)*i/n),c);}
+function telescope(x,y){for(let dx=-7;dx<=7;dx++){bt(x+dx,y,'#787880');bt(x+dx,y+1,'#484858');}for(let dx=-6;dx<=6;dx++)bt(x+dx,y-1,'#A8A8B8');
+ for(let j=2;j<=9;j++){bt(x-2,y-j,'#181828');bt(x-1,y-j,'#D8D8E0');bt(x,y-j,'#A0A0B0');bt(x+1,y-j,'#181828');}
+ for(let dx=-3;dx<=3;dx++)bt(x+dx,y-10,'#585868');
+ const cx=x,cy=y-16,a=-0.6,ca=Math.cos(a),sa=Math.sin(a);
+ for(let dy=-10;dy<=10;dy++)for(let dx=-12;dx<=12;dx++){const u=(dx*ca+dy*sa)/11,v=(-dx*sa+dy*ca)/4.5,e=u*u+v*v;if(e>1)continue;let c=e>0.78?'#505060':(v>0.15?'#B8B8C8':'#F0F0F8');if(e<0.78&&(Math.abs(u)<0.06||Math.abs(e-0.4)<0.05))c='#C8C8D8';bt(cx+dx,cy+dy,c);}
+ const fx=cx+6,fy=cy-9;line(cx-6,cy+1,fx,fy,'#686878');line(cx+7,cy-6,fx,fy,'#686878');line(cx+1,cy+3,fx,fy,'#686878');
+ for(let dx=-1;dx<=1;dx++)for(let dy=-1;dy<=1;dy++)bt(fx+dx,fy+dy,'#181828');bt(fx,fy,'#E8E8F0');}
+function snowman(x,y){for(let dx=-3;dx<=3;dx++)bt(x+dx,y,'#A8BCD8');const ball=(cy,rd)=>{for(let dy=-rd;dy<=rd;dy++)for(let dx=-rd;dx<=rd;dx++){const d2=dx*dx+dy*dy;if(d2<=rd*rd)bt(x+dx,cy+dy,d2>(rd-1)*(rd-1)?'#485878':(dx+dy<0?'#FFFFFF':'#D0DCF0'));}};ball(y-4,4);ball(y-10,3);bt(x-1,y-11,'#181828');bt(x+1,y-11,'#181828');bt(x+1,y-10,'#F88818');bt(x+2,y-10,'#F88818');for(let dx=-3;dx<=3;dx++)bt(x+dx,y-13,'#181828');for(let dx=-2;dx<=2;dx++)for(let j=14;j<=16;j++)bt(x+dx,y-j,'#181828');bt(x-1,y-7,'#D02828');bt(x,y-7,'#D02828');bt(x+1,y-7,'#D02828');bt(x+2,y-6,'#D02828');}
+function eggNest(x,y){for(let dx=-5;dx<=5;dx++){bt(x+dx,y,'#5C3010');bt(x+dx,y-1,dx%2?'#8C5A2C':'#B07838');}[-3,0,3].forEach(dx=>{bt(x+dx-1,y-3,'#181828');bt(x+dx,y-4,'#181828');bt(x+dx+1,y-3,'#181828');bt(x+dx,y-3,'#F8F0D8');bt(x+dx,y-2,'#E8D8B0');bt(x+dx-1,y-2,'#181828');bt(x+dx+1,y-2,'#181828');});bt(x,y-3,'#88C060');}
+const spr=[];
+[[78,98,1],[96,94,1.2],[112,100,0.8],[205,80,1],[222,76,1.3],[240,80,0.9]].forEach(q=>spr.push([q[1],()=>mountain(q[0],q[1],q[2])]));
+[[165,166,1],[185,160,1.2],[200,168,0.9]].forEach(q=>spr.push([q[1],()=>hill(q[0],q[1],q[2])]));
+[[16,120,0],[24,118,1],[20,128,0],[30,126,1],[12,134,1],[26,136,0],[72,162,0],[78,168,1],[124,160,0],[130,150,1],[148,116,0],[200,110,0],[212,116,1],[64,172,1],[196,148,0]].forEach(t=>{if(land(t[0],t[1]))spr.push([t[1],()=>t[2]?treeP(t[0],t[1]):treeD(t[0],t[1])]);});
+[[276,42],[322,62],[310,72],[330,80],[252,72],[268,82],[322,96]].forEach(t=>{if(land(t[0],t[1]))spr.push([t[1],()=>treeP(t[0],t[1],1)]);});
+[[70,72,1],[44,102,0.8],[66,104,1.1],[40,72,0.7]].forEach(c=>{if(land(c[0],c[1]))spr.push([c[1],()=>cactus(c[0],c[1],c[2])]);});
+spr.push([98,()=>telescope(28,98)]);spr.push([106,()=>palm(79,106,1)]);
+spr.push([70,()=>snowman(276,70)]);spr.push([136,()=>bush(264,136)]);spr.push([182,()=>palm(246,182)]);spr.push([178,()=>palm(318,178)]);spr.push([160,()=>palm(222,160)]);spr.push([179,()=>eggNest(306,179)]);
+spr.sort((a,c)=>a[0]-c[0]).forEach(s=>s[1]());
+function post(x,y,h){if(!land(x,y))return;for(let j=0;j<h;j++){bt(x-1,y-j,'#181828');bt(x,y-j,'#D0D0D8');bt(x+1,y-j,'#808090');bt(x+2,y-j,'#181828');}for(let dx=-1;dx<=2;dx++)bt(x+dx,y-h,'#181828');bt(x,y-h+1,'#F0F0F8');}
+function sign(x,y){if(!land(x,y+6))return;for(let dx=0;dx<4;dx++)for(let dy=0;dy<4;dy++)bt(x-1+dx,y+dy,(dx==0||dx==3||dy==0||dy==3)?'#181828':'#F8D030');bt(x+1,y+1,'#181828');bt(x,y+2,'#181828');}
+for(const hh of[4,7,10])for(let x=FX0;x<=FX1;x++)if(land(x,FY0)&&(x<284||x>300))bt(x,FY0-hh,'#303038');
+for(let x=FX0;x<=FX1;x+=7)if(x<283||x>301)post(x,FY0,12);
+for(const fx of[FX0,FX1])for(let y=FY0+1;y<=FY1;y++)if(land(fx,y)){for(let j=4;j<=10;j+=3)bt(fx,y-j,'#303038');if(y%6==0)post(fx,y,12);}
+for(const hh of[4,7,10])for(let x=FX0;x<=FX1;x++)if(land(x,FY1))bt(x,FY1-hh,'#303038');
+for(let x=FX0;x<=FX1;x+=7)post(x,FY1,12);
+[FX0+14,FX0+42,FX1-7,FX1-28].forEach(x=>sign(x,FY0-8));[FX0+28,FX1-14,FX0+63].forEach(x=>sign(x,FY1-8));
+for(const gx of[283,300]){for(let j=0;j<22;j++){bt(gx-1,FY0-j,'#181828');bt(gx,FY0-j,'#B07838');bt(gx+1,FY0-j,'#8C5A2C');bt(gx+2,FY0-j,'#181828');}}
+for(let x=281;x<=304;x++){bt(x,FY0-23,'#181828');bt(x,FY0-22,'#C08848');bt(x,FY0-21,'#8C5A2C');bt(x,FY0-20,'#181828');}
+for(let x=287;x<=297;x++)for(let y=FY0-19;y<=FY0-15;y++)bt(x,y,(x==287||x==297||y==FY0-19||y==FY0-15)?'#181828':'#D02828');
+
+/* ---------------- dynamic drawing ---------------- */
+const r=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x*P,y*P,w*P,h*P);};
+const D='#181828',ob=(x,y,w,h,c)=>{r(x-1,y-1,w+2,h+2,D);r(x,y,w,h,c);};
+let clk=0,authed=false,failed=false;
+function pad(x,y,lock){const c=lock?'#9898A0':'#F8C830',dk=lock?'#686870':'#C08010';r(x-9,y-3,18,7,D);r(x-11,y-2,22,5,D);r(x-9,y-2,18,5,c);r(x-10,y-1,20,3,c);r(x-6,y-2,8,1,lock?'#C8C8D0':'#F8F0A0');r(x-8,y+2,16,1,dk);}
+function board(cx,top,lines,ice){g.font='10px "Press Start 2P"';let w=0;lines.forEach(l=>w=Math.max(w,g.measureText(l).width));w=Math.ceil(w/P)+6;const h=lines.length*6+4,x0=cx-Math.floor(w/2);
+ r(cx-1,top+h,3,7,D);r(cx,top+h,1,7,ice?'#8898B8':'#8C5A2C');
+ r(x0-1,top-1,w+2,h+2,D);r(x0,top,w,h,ice?'#B8D8F0':'#B07838');r(x0,top,w,1,ice?'#FFFFFF':'#D09858');r(x0,top+h-1,w,1,ice?'#7898C8':'#7C4A20');
+ if(ice){for(let i=0;i<w;i++)if(hs(i,top)>0.4)r(x0+i,top-2,1,hs(i,1)>0.6?2:1,'#FFFFFF');for(let i=2;i<w;i+=5)r(x0+i,top+h,1,1+(i%3),'#D8F0FC');}
+ else{r(x0+2,top-1,3,1,'#30A030');r(x0+w-6,top+h,2,2,'#30A030');r(x0+w-5,top+h+2,1,1,'#30A030');}
+ g.textAlign='center';lines.forEach((l,i)=>{g.fillStyle=ice?'#183870':'#F8F0D0';g.fillText(l,cx*P+1,(top+3+i*6)*P+9);});}
+function weather(){g.fillStyle='#FFFFFF';for(let i=0;i<46;i++){const sp=1+i%3,x=248+((i*37+Math.floor(clk*0.05*sp)+Math.round(3*Math.sin((clk+i*40)/50)))%92),y=14+((i*53+Math.floor(clk*0.12*sp))%84);g.fillRect(x*P,y*P,i%5==0?2*P:P,P);}}
+function arcs(cx,cy,maxR,from,to,col,speed,n){for(let k=0;k<n;k++){const rr=((clk*speed)+k*maxR/n)%maxR;if(rr<2)continue;const al=(1-rr/maxR)*0.85;g.fillStyle='rgba('+col+','+al.toFixed(2)+')';const st=Math.max(6,Math.round(rr*1.6));for(let s=0;s<=st;s++){const a=from+(to-from)*s/st;g.fillRect(Math.round(cx+Math.cos(a)*rr)*P,Math.round(cy+Math.sin(a)*rr*0.8)*P,P,P);}}}
+function rf(){const[x,y]=NODES.W;arcs(x-5,y-20,18,-2.6,-0.5,'120,230,255',0.18,3);arcs(x+5,y-20,18,-2.6,-0.5,'120,230,255',0.18,3);
+ arcs(34,73,22,-2.3,-0.9,'255,240,140',0.12,3);if((clk%60)<30)r(34,72,1,1,'#F83030');
+ const t=(clk*0.18)%140;if(t<80){const tx=Math.round(22+t),ty=106-Math.round(Math.abs(Math.sin(t/4))*3),rot=Math.floor(t/2)%4;[[-2,-1],[-1,-2],[0,-2],[1,-1],[2,0],[1,1],[0,1],[-1,1],[-2,0],[0,0],[-1,-1],[1,0]].forEach(([a,c],i)=>{if((i+rot)%3)r(tx+a,ty+c,1,1,i%2?'#A07038':'#704820');});r(tx-2,107,5,1,'rgba(0,0,0,0.15)');}}
+function boats(){
+ const bob=(clk>>5)%2;
+ const a=clk/700,x=Math.round(178+14*Math.cos(a)),y=Math.round(127+4*Math.sin(a))+bob,dir=-Math.sin(a)>0?1:-1;
+ r(x-dir*7,y+2,2,1,'#E8F8F8');r(x-dir*9,y+1,1,1,'#E8F8F8');
+ r(x-5,y,11,3,D);r(x-4,y,9,2,'#A06828');r(x-3,y+2,7,1,D);r(x-4,y,9,1,'#C08848');r(x,y-9,1,9,'#5C3010');
+ for(let j=0;j<8;j++){const w=Math.max(1,Math.round(j*0.6));r(dir>0?x+1:x-w,y-9+j,w,1,j==0?'#E8E8F0':'#F8F8F8');}r(x,y-10,2,1,'#E83838');
+ const t=clk/260,rx=Math.round(178+9*Math.sin(t)),ry=133+((clk>>5)+1)%2,rd=Math.cos(t)>0?1:-1,oar=(clk>>4)%2;
+ r(rx-4,ry,9,3,D);r(rx-3,ry,7,2,'#8C5A2C');r(rx-3,ry,7,1,'#B07838');r(rx-1,ry-3,3,3,D);r(rx,ry-3,1,2,'#D83030');r(rx,ry-4,1,1,'#F8C898');
+ r(rx-5,ry+(oar?1:0),2,1,'#704020');r(rx+4,ry+(oar?1:0),2,1,'#704020');if(oar)r(rx-rd*6,ry+2,1,1,'#E8F8F8');
+ const fx=163,fy=129+bob;r(fx-4,fy,8,3,D);r(fx-3,fy,6,2,'#3868B0');r(fx-3,fy,6,1,'#5888D0');r(fx-1,fy-3,3,3,D);r(fx,fy-3,1,2,'#30A048');r(fx,fy-4,1,1,'#F8C898');r(fx,fy-5,2,1,'#E8C030');
+ for(let j=1;j<6;j++)r(fx+1+j,fy-4-Math.round(j*0.5),1,1,'#504030');for(let j=0;j<5;j++)r(fx+6,fy-6+j*2,1,1,'rgba(240,240,240,0.7)');r(fx+6,fy+3+((clk>>4)%2),1,1,'#E83838');
+ const da=clk/150,dx2=Math.round(190+5*Math.cos(da)),dy2=Math.round(122+2*Math.sin(da)),dd=-Math.sin(da)>0?1:-1;
+ r(dx2-2,dy2,5,2,'#F8F8F8');r(dx2-2,dy2+1,5,1,'#B0B0B8');r(dd>0?dx2+2:dx2-3,dy2-2,2,2,'#287828');r(dd>0?dx2+4:dx2-4,dy2-1,1,1,'#F89818');
+}
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+const walkers=[
+ {t:'rap',c:'#C87838',s:'#904818',box:[260,140,278,152],x:268,y:146,sp:0.16},
+ {t:'rap',c:'#58A848',s:'#2C7030',box:[224,162,262,180],x:236,y:172,sp:0.18},
+ {t:'rap',c:'#C8A038',s:'#806020',box:[222,150,250,160],x:240,y:156,sp:0.14},
+ {t:'tri',box:[230,160,272,178],x:258,y:168,sp:0.07},
+ {t:'tri',c2:1,box:[300,164,318,174],x:304,y:170,sp:0.05}
+];
+walkers.forEach(w=>{w.tx=w.x;w.ty=w.y;w.wait=0;w.dir=1;});
+function walk(w){let moving=false;if(w.wait>0)w.wait--;else{const dx=w.tx-w.x,dy=w.ty-w.y,dist=Math.hypot(dx,dy);if(dist<0.6){w.tx=w.box[0]+rnd()*(w.box[2]-w.box[0]);w.ty=w.box[1]+rnd()*(w.box[3]-w.box[1]);w.wait=30+Math.floor(rnd()*120);}else{w.x+=dx/dist*w.sp;w.y+=dy/dist*w.sp;moving=true;if(Math.abs(dx)>0.3)w.dir=dx>0?1:-1;}}
+ const rx=Math.round(w.x),ry=Math.round(w.y),dir=w.dir,f=moving?(clk>>3)%2:0;const q=(dx,dy,ww,h,c)=>r(dir>0?rx+dx:rx-dx-ww+1,ry+dy,ww,h,c);
+ if(w.t=='rap'){r(rx-4,ry,9,1,'rgba(0,0,0,0.3)');q(-8,-7,5,3,D);q(-7,-6,4,1,w.c);q(-4,-8,8,5,D);q(-3,-7,6,3,w.c);q(-2,-7,4,1,w.s);q(3,-11,6,5,D);q(4,-10,4,3,w.c);q(6,-10,1,1,D);q(5,-8,3,1,'#F8F0E0');q(-1+f,-3,2,3,D);q(2-f,-3,2,3,D);}
+ else{const bc=w.c2?'#9878C8':'#5890C8',hc=w.c2?'#C0A8E8':'#88B8E8',dk=w.c2?'#685098':'#3868A0';r(rx-6,ry,13,1,'rgba(0,0,0,0.3)');q(-9,-6,3,2,D);q(-9,-5,2,1,bc);q(-7,-9,12,7,D);q(-6,-8,10,5,bc);q(-6,-8,10,1,hc);q(-5,-4,8,1,dk);q(4,-11,4,8,D);q(5,-10,2,6,'#E8A040');q(5,-10,1,1,'#F8D080');q(6,-8,6,5,D);q(7,-7,4,3,bc);q(8,-7,1,1,D);q(11,-5,2,1,'#C8B898');q(8,-10,1,2,'#F8F8F0');q(10,-9,1,1,'#F8F8F0');q(11,-9,2,1,'#F8F8F0');q(-5+f,-3,2,3,D);q(-1-f,-3,2,3,D);q(1+f,-3,2,3,D);}}
+function dinos(){
+ const bob=Math.round(Math.sin(clk/40)*2),bx=312,by=146;
+ for(let dy=-5;dy<=5;dy++){const hw=Math.round(9*Math.sqrt(Math.max(0,1-(dy/5.5)**2)));r(bx-hw,by+dy,hw*2+1,1,D);}
+ for(let dy=-4;dy<=4;dy++){const hw=Math.round(8*Math.sqrt(Math.max(0,1-(dy/4.5)**2)));r(bx-hw,by+dy,hw*2+1,1,dy<-1?'#98C870':(dy>2?'#587F40':'#78A858'));}
+ [[-7,4],[-3,5],[2,4],[6,5]].forEach(([lx,ly])=>{r(bx+lx-1,by+ly-1,4,5,D);r(bx+lx,by+ly,2,3,'#587F40');});
+ [[-13,-1,4],[-16,0,3],[-18,1,2]].forEach(([tx,ty,w])=>{r(bx+tx-1,by+ty-1,w+2,3,D);r(bx+tx,by+ty,w,1,'#78A858');});
+ for(let i=0;i<8;i++){const nx=bx+4+i,ny=by-3-i*2+(i>4?Math.round(bob*(i-4)/3):0);r(nx-1,ny-1,4,4,D);r(nx,ny,2,2,i%2?'#88B868':'#78A858');}
+ const hx=bx+14,hy=by-19+bob;r(hx-2,hy-2,7,5,D);r(hx-1,hy-1,5,3,'#88B868');r(hx+2,hy-1,1,1,D);r(hx,hy+1,3,1,'#587F40');
+ walkers.slice().sort((a,c)=>a.y-c.y).forEach(walk);
+ const vis=(clk%420)<300,blink=(clk%70)<5;if(vis&&!blink){r(261,130,1,1,'#F8E030');r(265,130,1,1,'#F8E030');}
+ if((clk%240)<20){const w=(clk>>1)%2;r(305+w,175,1,1,D);}
+}
+function devices(){
+ for(const k in NODES){if(k=='C')continue;const[x,y]=NODES[k];pad(x,y,k=='W'||k=='I');}
+ let[x,y]=NODES.S;
+ ob(x-8,y-23,16,15,'#404058');r(x-7,y-22,14,12,authed?'#48D880':(failed?'#E05050':'#48B8F0'));r(x-6,y-21,4,1,'#F8F8F8');r(x-6,y-20,2,1,'#F8F8F8');
+ if(authed){r(x-3,y-15,2,2,'#F8F8F8');r(x-1,y-14,2,2,'#F8F8F8');r(x+1,y-16,2,2,'#F8F8F8');r(x+3,y-18,2,2,'#F8F8F8');}
+ else if(failed){for(let i=0;i<6;i++){r(x-3+i,y-19+i,1,1,'#F8F8F8');r(x+2-i,y-19+i,1,1,'#F8F8F8');}}
+ else{r(x-2,y-17,5,4,'#F8D830');r(x-1,y-19,3,1,D);r(x-2,y-18,1,1,D);r(x+2,y-18,1,1,D);r(x,y-16,1,2,D);}
+ ob(x-10,y-7,20,4,'#B8B8C8');r(x-9,y-6,18,1,'#8888A0');r(x-9,y-4,18,1,'#9898A8');
+ [x,y]=NODES.N;ob(x-13,y-18,26,5,'#E0E0E8');r(x-12,y-17,24,1,'#F8F8F8');ob(x-13,y-13,26,9,'#8080A0');r(x-13,y-13,26,1,'#A0A0B8');
+ for(let i=0;i<6;i++){r(x-11+i*4,y-11,3,3,'#202030');r(x-11+i*4,y-7,2,1,i==0?(authed?C.ok:(failed?'#F83030':(clk%40<20?'#F83030':'#801818'))):(((clk>>2)+i*3)%7?'#F8B800':'#604000'));}
+ [x,y]=NODES.R;r(x-8,y-21,16,1,D);r(x-10,y-20,20,12,D);r(x-8,y-8,16,1,D);r(x-8,y-20,16,1,'#88C8F8');r(x-9,y-19,18,3,'#68B0F0');r(x-8,y-16,16,1,'#68B0F0');r(x-9,y-15,18,6,'#2858C0');r(x-8,y-9,16,1,'#183890');r(x-8,y-15,1,5,'#4878D8');
+ r(x-6,y-18,13,1,'#F8F8F8');r(x,y-20,1,5,'#F8F8F8');r(x-5,y-19,1,3,'#F8F8F8');r(x+5,y-19,1,3,'#F8F8F8');
+ [x,y]=NODES.F;ob(x-13,y-25,26,3,'#F89050');ob(x-13,y-22,26,16,'#C84818');
+ for(let j=0;j<4;j++){const yy=y-22+j*4;r(x-13,yy+3,26,1,'#F8C8A0');for(let i=(j%2)*4;i<26;i+=8){r(x-13+i,yy,1,3,'#F8C8A0');r(x-12+i,yy,5,1,'#E06830');}}
+ for(let k=0;k<3;k++){const fx=x-8+k*8,f=3+((clk>>2)+k)%3;r(fx-1,y-26-f,3,f,'#F87818');r(fx,y-25-f,1,f-1,'#F8D830');}
+ [x,y]=NODES.A;ob(x-10,y-37,20,3,'#A0A0B8');ob(x-10,y-34,20,30,'#383850');r(x+8,y-34,2,30,'#282840');
+ for(let i=0;i<6;i++){const yy=y-32+i*5;r(x-8,yy,15,4,'#585878');r(x-7,yy+1,8,1,'#8080A8');r(x+3,yy+1,1,1,((clk>>3)+i)%3?'#30D058':'#186828');r(x+5,yy+1,1,1,((clk>>4)+i*2)%4?'#F8B800':'#604000');}
+ r(x-11,y-39,22,2,'#FFFFFF');r(x-9,y-40,8,1,'#FFFFFF');r(x+3,y-40,5,1,'#FFFFFF');for(let i=-9;i<10;i+=3)r(x+i,y-37,1,1+((i+12)%3),'#D8F0FC');
+ [x,y]=NODES.W;ob(x-8,y-9,16,4,'#C8C8D0');r(x-7,y-9,14,1,'#E8E8F0');r(x-6,y-19,2,10,'#787880');r(x+4,y-19,2,10,'#787880');r(x-6,y-20,2,1,'#A8F0F8');r(x+4,y-20,2,1,'#A8F0F8');
+ [x,y]=NODES.I;for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){const d2=dx*dx+dy*dy;if(d2<=64)r(x+dx,y-12+dy,1,1,d2>49?D:((dx==0||dy==0||Math.abs(d2-20)<4)?'#686878':'#A8A8B8'));}
+ for(const k of['W','I','C']){[x,y]=NODES[k];if(k=='C')y+=cloudBob();ob(x+6,y-8,7,6,'#D8B030');r(x+7,y-11,5,1,D);r(x+7,y-11,1,3,D);r(x+11,y-11,1,3,D);r(x+9,y-6,1,2,D);}
+}
+const NODEBOX={S:[-11,-25,22,30],N:[-14,-20,28,25],R:[-11,-22,22,27],F:[-14,-30,28,35],A:[-11,-41,22,46],W:[-11,-21,26,26],I:[-11,-21,26,26],C:[-24,-14,48,26]};
+function selection(){if(sel.kind!=='node')return;const k=sel.id,[x,y]=NODES[k],bx=NODEBOX[k],o=(clk>>3)%2,x0=x+bx[0]-o,y0=y+bx[1]-o,x1=x+bx[0]+bx[2]+o,y1=y+bx[1]+bx[3]+o,c='#F8D830';
+ [[x0,y0,1,1],[x1-3,y0,1,-1],[x0,y1-1,-1,1],[x1-3,y1-1,-1,-1]].forEach(([px,py,a,bb])=>{r(px,py,4,1,c);r(a>0?px:px+3,bb>0?py:py-3,1,4,c);});}
+function label(t,cx,cy,lock){g.font='10px "Press Start 2P"';const w=g.measureText(t).width+12,x=Math.min(Math.max(cx*P-w/2,6),674-w),y=cy*P;g.fillStyle='#181848';g.fillRect(x-3,y-3,w+6,22);g.fillStyle=lock?'#A0A0B0':'#F8F8F8';g.fillRect(x,y,w,16);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,x+w/2,y+13);}
+function labels(){label('Supplicant',44,146);label('NAD',110,146);label('Router',170,101);label('Firewall',230,101);label('ISE (RADIUS)',292,6);label('Wi-Fi AP',56,48,1);label('Internet',292,162,1);
+ g.font='10px "Press Start 2P"';g.fillStyle='#F8F8F8';g.textAlign='center';g.fillText('DMZ',292*P,(FY0-15)*P-1);
+ board(239,130,['Dino','World','DMZ'],0);board(318,80,['DC ISE','World'],1);}
+function banner(){g.font='10px "Press Start 2P"';g.fillStyle='#181848';g.fillRect(8,8,300,30);g.fillStyle='#F8F8F8';g.fillRect(11,11,294,24);g.fillStyle='#181848';g.fillRect(14,14,288,18);g.fillStyle='#F8D830';g.textAlign='left';g.fillText('World 1-1  802.1X EAP-TLS',22,28);}
+/* cloud access world */
+const CLOUD=[];(()=>{const bl=[[-20,4,8],[-9,-1,11],[5,-4,12],[18,1,10],[28,5,7],[-28,6,6],[0,5,12]];const ins=(x,y)=>bl.some(([a,c,rd])=>((x-a)/1.25)**2+(y-c)**2<=rd*rd);
+ for(let y=-18;y<=14;y++)for(let x=-44;x<=44;x++){if(!ins(x,y))continue;const edge=!ins(x+1,y)||!ins(x-1,y)||!ins(x,y+1)||!ins(x,y-1);let c=edge?'#4E5C9C':(y>6?'#C4D2F4':(y>3?'#E2EAFC':'#FFFFFF'));if(!edge&&y<-6&&x<0&&ins(x-2,y-2)&&!ins(x-3,y-4))c='#FFFFFF';CLOUD.push([x,y,c]);}})();
+const cloudBob=()=>Math.round(Math.sin(clk/70)*1.5);
+function cloudWorld(){const[cx,cy]=NODES.C,bo=cloudBob();g.fillStyle='rgba(10,30,90,0.18)';for(let dy=-3;dy<=3;dy++){const hw=Math.round(30*Math.sqrt(1-(dy/3.5)**2));g.fillRect((cx-hw)*P,(cy+30+dy)*P,hw*2*P,P);}
+ for(const[x,y,c]of CLOUD){g.fillStyle=c;g.fillRect((cx+x)*P,(cy+y+bo)*P,P,P);}
+ pad(cx,cy-6+bo,1);label('Cloud Access World',cx,cy+3+bo,1);for(let i=0;i<3;i++){const sx=cx-30+((clk*0.05+i*23)%60);r(Math.round(sx),cy-12+bo+(i%2)*3,2,1,'rgba(255,255,255,0.8)');}}
+/* fireworks */
+const rockets=[],sparks=[],flashes=[];let celebrate=0,celebText=0;
+const PAL=[['#FFFFFF','#FF3B5C','#B0102C'],['#FFFFFF','#FFD23A','#C87800'],['#FFFFFF','#3AE0FF','#1060C8'],['#FFFFFF','#5CFF6E','#108838'],['#FFFFFF','#FF6EF0','#9020B0'],['#FFFFFF','#B48CFF','#4830B0'],['#FFFFFF','#FF9A3A','#B04010']];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function burst(x,y,kind){const pa=pick(PAL),pb=pick(PAL);flashes.push({x,y,t:0});
+ const add=(vx,vy,l,pal,o)=>sparks.push(Object.assign({x,y,vx,vy,l,l0:l,pal,tr:[]},o||{}));
+ if(kind==='ring'){for(let i=0;i<40;i++){const a=i/40*Math.PI*2;add(Math.cos(a)*1.15,Math.sin(a)*0.9,60,pa);}for(let i=0;i<20;i++){const a=i/20*Math.PI*2;add(Math.cos(a)*0.55,Math.sin(a)*0.45,55,pb);}}
+ else if(kind==='willow'){for(let i=0;i<44;i++){const a=Math.random()*Math.PI*2,sp=0.4+Math.random()*0.9;add(Math.cos(a)*sp,Math.sin(a)*sp*0.8,110+Math.floor(Math.random()*30),['#FFFFFF','#FFE070','#C88820'],{g:0.012,drag:0.975,glit:1});}}
+ else if(kind==='crossette'){for(let i=0;i<8;i++){const a=i/8*Math.PI*2;add(Math.cos(a)*1.2,Math.sin(a)*1.0,34,pa,{split:pb});}}
+ else{for(let i=0;i<56;i++){const a=Math.random()*Math.PI*2,sp=0.35+Math.random()*1.05;add(Math.cos(a)*sp,Math.sin(a)*sp*0.85,52+Math.floor(Math.random()*26),i%4?pa:pb);}}}
+function launch(x,ty){rockets.push({x,y:150,ty,vx:(Math.random()-.5)*0.25,kind:pick(['peony','peony','ring','willow','crossette'])});}
+function fireworks(){
+ if(celebrate>0){celebrate--;if(celebrate%13==0&&celebrate>70)launch(14+Math.random()*190,44+Math.random()*70);
+  if(celebrate==60){for(let i=0;i<4;i++)launch(30+i*42+Math.random()*10,52+Math.random()*30);}}
+ for(let i=rockets.length-1;i>=0;i--){const k=rockets[i];k.y-=1.8;k.x+=k.vx;const rx=Math.round(k.x),ry=Math.round(k.y);r(rx,ry,1,2,'#FFFFFF');r(rx,ry+2,1,2,'#FFE070');r(rx,ry+4,1,2,'rgba(255,160,40,0.6)');if(clk%2)r(rx+(Math.random()<.5?-1:1),ry+3+Math.floor(Math.random()*4),1,1,'#FFD23A');if(k.y<=k.ty){burst(k.x,k.y,k.kind);rockets.splice(i,1);}}
+ for(let i=flashes.length-1;i>=0;i--){const f=flashes[i];f.t++;const rad=3+f.t*1.4,al=Math.max(0,0.5-f.t*0.07);if(al<=0){flashes.splice(i,1);continue;}g.fillStyle='rgba(255,250,220,'+al.toFixed(2)+')';for(let dy=-rad;dy<=rad;dy++){const hw=Math.round(Math.sqrt(Math.max(0,rad*rad-dy*dy)));g.fillRect((f.x-hw)*P,(f.y+dy)*P,hw*2*P,P);}}
+ for(let i=sparks.length-1;i>=0;i--){const p=sparks[i];p.tr.unshift([p.x,p.y]);if(p.tr.length>4)p.tr.pop();p.x+=p.vx;p.y+=p.vy;p.vy+=p.g||0.02;const dr=p.drag||0.97;p.vx*=dr;p.vy*=dr;p.l--;
+  if(p.l<=0){if(p.split){for(let j=0;j<6;j++){const a=j/6*Math.PI*2;sparks.push({x:p.x,y:p.y,vx:Math.cos(a)*0.7,vy:Math.sin(a)*0.6,l:30,l0:30,pal:p.split,tr:[]});}flashes.push({x:p.x,y:p.y,t:3});}sparks.splice(i,1);continue;}
+  const f=p.l/p.l0,col=f>0.82?p.pal[0]:(f>0.3?p.pal[1]:p.pal[2]);if(f<0.18&&(p.l%3==0))continue;
+  if(p.glit&&f<0.6&&Math.random()<0.35){r(Math.round(p.x),Math.round(p.y),1,1,'#FFFFFF');continue;}
+  p.tr.forEach((t,j)=>{g.globalAlpha=(0.55-j*0.13)*Math.min(1,f*1.5);r(Math.round(t[0]),Math.round(t[1]),1,1,p.pal[1]);});g.globalAlpha=1;
+  const sz=f>0.7?2:1;r(Math.round(p.x)-(sz>1?0:0),Math.round(p.y),sz,sz,col);}
+ if(celebText>0){celebText--;const[x,y]=NODES.N,t='PORT OPEN!';g.font='10px "Press Start 2P"';const w=g.measureText(t).width+14,px=x*P-w/2,py=(y-40)*P+((celebText>>3)%2);g.fillStyle='#181848';g.fillRect(px-3,py-3,w+6,24);g.fillStyle=FWC2[(clk>>3)%FWC2.length];g.fillRect(px,py,w,18);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,x*P,py+14);}}
+const FWC2=['#5CFF6E','#FFD23A','#3AE0FF','#FF6EF0'];
+/* sea life: dolphins, or sharks during a storm */
+const DOL=[[64,34,0],[100,31,190],[128,38,360],[82,42,95]];
+function seaLife(){
+ if(failed&&stormT>20){const k=Math.min(1,(stormT-20)/60),cx=100,cy=34;for(let n=0;n<3;n++){const a=clk/95+n*2.1,x=cx+Math.cos(a)*24,y=cy+Math.sin(a)*7,dir=-Math.sin(a)>0?1:-1;
+   g.globalAlpha=k;for(let j=1;j<=7;j++){const b2=a-j*0.06;r(Math.round(cx+Math.cos(b2)*24),Math.round(cy+Math.sin(b2)*7)+1,1,1,j<4?'#F0F8FF':'#A8D0F8');}
+   const fx=Math.round(x),fy=Math.round(y);r(fx-3,fy+1,7,1,'#E8F4FF');
+   for(let j=0;j<5;j++){const w=Math.max(1,Math.round((5-j)*0.8));const x0=dir>0?fx:fx-w+1;r(x0-1,fy-j,w+2,1,'#1C2030');}
+   for(let j=0;j<4;j++){const w=Math.max(1,Math.round((4-j)*0.8));const x0=dir>0?fx:fx-w+1;r(x0,fy-j,w,1,j<2?'#6C7488':'#8C94A8');}g.globalAlpha=1;}return;}
+ for(const[x0,y0,ph]of DOL){const t=(clk+ph)%520;
+  if(t<74){const s=t/74,pt=u=>[x0+u*18,y0-Math.sin(u*Math.PI)*10];
+   for(let pass=0;pass<2;pass++)for(let j=0;j<8;j++){const u=s-j*0.028;if(u<0||u>1)continue;const[bx,by]=pt(u);const X=Math.round(bx),Y=Math.round(by);if(pass==0){r(X-1,Y-1,4,4,'#1C2848');}else{r(X,Y,2,1,j==0?'#B8D0F0':'#6888C0');r(X,Y+1,2,1,j<5?'#E8F0FF':'#5070A8');}}
+   const uf=s-3*0.028;if(uf>0&&uf<1){const[fx,fy]=pt(uf);r(Math.round(fx),Math.round(fy)-2,1,2,'#1C2848');r(Math.round(fx)+1,Math.round(fy)-1,1,1,'#1C2848');}
+   const ut=s-8*0.028;if(ut>0&&ut<1){const[tx,ty]=pt(ut);const ang=Math.cos(ut*Math.PI);r(Math.round(tx)-1,Math.round(ty)-1-(ang>0?0:1),1,2,'#1C2848');r(Math.round(tx)-1,Math.round(ty)+1+(ang>0?1:0),1,2,'#1C2848');}
+   const[ex]=pt(s);r(Math.round(ex)+1,Math.round(pt(s)[1])+0,1,1,'#101828');}
+  if(t>=200&&t<270){const u=t-200,hx=x0+9,up=u<10?Math.ceil(u/4):(u>58?Math.max(0,3-Math.ceil((u-58)/4)):3);
+   if(up>0){r(hx-3,y0-up+1,7,up,'#1C2848');r(hx-2,y0-up+1,5,Math.max(1,up-1),'#6888C0');r(hx-1,y0-up+1,2,1,'#B8D0F0');r(hx-3,y0+1,7,1,'#E8F4FF');}
+   if(u>=12&&u<52){const v=u-12,h=Math.min(8,v*0.6);for(let j=0;j<h;j++)r(hx,y0-up-j,1,1,j>h-3?'#FFFFFF':'#D8ECFF');
+    if(v>8){for(let k2=0;k2<6;k2++){const a2=-Math.PI/2+(k2-2.5)*0.38,d2=(v-8)*0.18;r(Math.round(hx+Math.cos(a2)*d2*2),Math.round(y0-up-h+Math.sin(a2)*d2+((v-8)*(v-8))*0.008),1,1,'rgba(240,250,255,'+Math.max(0,1-(v-8)/34).toFixed(2)+')');}}}}
+  const spl=(x,tt)=>{for(let i=0;i<5;i++){const a=-Math.PI*(0.15+i*0.17),d=tt*0.35;r(Math.round(x+Math.cos(a)*d),Math.round(y0+Math.sin(a)*d*1.4+tt*tt*0.02),1,1,'#F0F8FF');}};
+  if(t<14)spl(x0,t);if(t>=72&&t<88)spl(x0+18,t-72);
+  if(t>=74&&t<120){const rr=(t-74)*0.25;g.fillStyle='rgba(230,245,255,'+(0.6-(t-74)/80).toFixed(2)+')';for(let a=0;a<6.28;a+=0.4)g.fillRect(Math.round(x0+18+Math.cos(a)*rr*1.6)*P,Math.round(y0+1+Math.sin(a)*rr*0.5)*P,P,P);}}}
+/* thunderstorm */
+let stormT=0;
+function storm(){if(!failed){stormT=0;return;}stormT++;const k=Math.min(1,stormT/60),[sx,sy]=NODES.S,cx=sx,cy=sy-44+Math.round(Math.sin(clk/50));
+ g.fillStyle='rgba(16,20,56,'+(0.22*k).toFixed(3)+')';g.fillRect((sx-34)*P,(sy-58)*P,68*P,66*P);
+ for(let i=0;i<34;i++){const x=cx-20+((i*11)%40)+(i%3),fall=(clk*1.6+i*17)%40,y=cy+6+fall;if(y>sy+4)continue;r(x-Math.floor(fall/12),Math.round(y),1,2,'rgba(168,200,248,'+(0.85*k).toFixed(2)+')');if(fall>36)r(x-3,sy+3,2,1,'rgba(200,220,255,0.6)');}
+ for(const[x,y,c]of CLOUD){if(Math.abs(x)>34)continue;const cc=c=='#4E5C9C'?'#22263A':(c=='#C4D2F4'?'#3A4058':(c=='#E2EAFC'?'#565C78':'#6C7290'));g.fillStyle=cc;g.globalAlpha=k;g.fillRect((cx+Math.round(x*0.8))*P,(cy+Math.round(y*0.7))*P,P,P);}
+ g.globalAlpha=1;
+ const ph=stormT%150;if(stormT>40&&ph<8){if(ph<2){g.fillStyle='rgba(255,255,255,0.18)';g.fillRect(0,0,680,400);}let x=cx+2,y=cy+8;const pts=[[x,y]];[[ -3,4],[3,3],[-4,4],[2,3],[-2,3]].forEach(([dx,dy])=>{x+=dx;y+=dy;pts.push([x,y]);});for(let i=0;i<pts.length-1;i++){const a=pts[i],c=pts[i+1],n=Math.max(Math.abs(c[0]-a[0]),Math.abs(c[1]-a[1]));for(let j=0;j<=n;j++){const px=Math.round(a[0]+(c[0]-a[0])*j/n),py=Math.round(a[1]+(c[1]-a[1])*j/n);r(px-1,py,3,1,'#F8D830');r(px,py,1,1,'#FFFFFF');}}}}
+function fx(){
+ const ph=clk>>6;g.fillStyle='#C8ECF8';for(const[x,y]of shore)if((x*3+y+ph)%7==0)g.fillRect(x*P,y*P,P,P);
+ g.fillStyle='#D8F0F8';for(const[x,y,p]of deep)if(((clk>>5)+p)%12==0)g.fillRect(x*P,y*P,2*P,P);
+ for(const[x,y,e]of wf){g.fillStyle=e?'#3878E0':(((y-(clk>>2))%3+3)%3==0?'#E8F8F8':'#78C0F8');g.fillRect(x*P,y*P,P,P);}
+ for(let k=0;k<2;k++){const cx=((clk*0.08+k*190)%(W+80))-40,cy=k?150:60;g.fillStyle='rgba(16,24,72,0.1)';for(let dy=-8;dy<=8;dy++){const hw=Math.round(26*Math.sqrt(1-(dy/9)**2));g.fillRect((cx-hw)*P,(cy+dy)*P,hw*2*P,P);}}
+}
+function packet(x,y,col){const bob=Math.floor(clk/8)%2;x=Math.round(x);y=Math.round(y);r(x-4,y+2,8,2,'rgba(0,0,0,0.3)');y=y-12-bob;r(x-7,y-5,14,10,D);r(x-6,y-4,12,8,col);r(x-6,y-4,12,1,'#F8F8F8');for(let i=0;i<6;i++){r(x-6+i,y-3+Math.floor(i*0.6),1,1,'rgba(0,0,0,0.35)');r(x+5-i,y-3+Math.floor(i*0.6),1,1,'rgba(0,0,0,0.35)');}}
+const effects=[];
+function drawEffects(){for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.t++;const s=Math.min(6,2+e.t/6),x=e.x,y=e.y-14;for(let j=-s;j<=s;j++){r(x+j-1,y+j-1,3,3,D);r(x+j-1,y-j-1,3,3,D);}for(let j=-s;j<=s;j++){r(x+j,y+j,1,1,'#F85050');r(x+j,y-j,1,1,'#F85050');}
+ g.font='10px "Press Start 2P"';g.textAlign='center';const ty=(y-10-Math.min(e.t,30)/6)*P;g.fillStyle=D;g.fillText(e.k=='drop'?'DROP':'DISCARD',x*P+2,ty+2);g.fillStyle='#F8F8F8';g.fillText(e.k=='drop'?'DROP':'DISCARD',x*P,ty);
+ if(e.t>140)effects.splice(i,1);}}
+function waiting(){if(!(steps[si]&&steps[si].wait))return;const[x,y]=NODES.N;const by=y-30;r(x-9,by-1,18,9,D);r(x-8,by,16,7,'#F8F8F8');r(x-2,by+8,3,2,D);r(x-1,by+7,1,2,'#F8F8F8');const n=1+((clk>>4)%3);for(let i=0;i<n;i++)r(x-5+i*4,by+3,2,2,D);}
+
+/* ---------------- playback ---------------- */
+let scen=SCEN[0],steps=scen.steps,si=0,gi=0,d=0,hold=0,play=true,speed=1,cur=null,len=0,pkt=null,finished=false;
+const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce)play=false;
+function route(keys){let pts=[];keys.forEach(k=>{const rev=k[0]=='-',p=PATHS[k.replace('-','')].slice();if(rev)p.reverse();pts=pts.length?pts.concat(p.slice(1)):p;});return pts;}
+function setSeg(){const s=steps[si].seg[gi];cur=null;if(!s)return;cur=route(s.k);len=0;for(let i=0;i<cur.length-1;i++)len+=Math.abs(cur[i+1][0]-cur[i][0])+Math.abs(cur[i+1][1]-cur[i][1]);d=0;}
+function at(dist){let rem=dist;for(let i=0;i<cur.length-1;i++){const a=cur[i],c=cur[i+1],L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);if(rem<=L){const f=L?rem/L:0;return[a[0]+(c[0]-a[0])*f,a[1]+(c[1]-a[1])*f];}rem-=L;}return cur[cur.length-1];}
+function completeStep(){const s=steps[si];if(s.final=='ok'){authed=true;celebrate=480;celebText=420;}if(s.final=='fail')failed=true;}
+function tick(){
+ const s=steps[si];pkt=null;
+ if(gi<s.seg.length){const p=at(d);pkt={x:p[0],y:p[1]};packet(p[0],p[1],s.seg[gi].c);
+  if(play){d+=1.1*speed;if(d>=len){const sg=s.seg[gi];if(sg.end){const e=cur[cur.length-1];effects.push({x:e[0],y:e[1],t:0,k:sg.end});}gi++;if(gi>=s.seg.length)completeStep();else setSeg();}}}
+ else if(play){hold+=speed;const lim=s.wait?140:80;if(hold>lim){if(si<steps.length-1)goStep(si+1,true);else if(!finished){finished=true;play=false;ui();}}}
+}
+function goStep(i,auto){si=Math.max(0,Math.min(steps.length-1,i));gi=0;hold=0;finished=false;authed=false;failed=false;effects.length=0;celebrate=0;celebText=0;rockets.length=0;sparks.length=0;flashes.length=0;
+ if(!steps[si].seg.length&&steps[si].final)completeStep();setSeg();if(!auto)sel={kind:'step'};ui();}
+function setScenario(id){scen=SCEN.find(s=>s.id===id);steps=scen.steps;play=true;sel={kind:'step'};goStep(0);buildLadder();ui();}
+
+/* ---------------- camera ---------------- */
+let cam={x:170,y:100,z:1},camT={x:170,y:100,z:1},follow=false;
+function view(){const vw=W/cam.z,vh=H/cam.z;const cx=Math.max(vw/2,Math.min(W-vw/2,cam.x)),cy=Math.max(vh/2,Math.min(H-vh/2,cam.y));return{x0:cx-vw/2,y0:cy-vh/2,vw,vh};}
+function updateCam(){if(follow&&pkt)camT={x:pkt.x,y:pkt.y-8,z:2};const k=reduce?1:0.1;cam.x+=(camT.x-cam.x)*k;cam.y+=(camT.y-cam.y)*k;cam.z+=(camT.z-cam.z)*k;}
+function blit(){const v=view();m.imageSmoothingEnabled=false;m.drawImage(sc,v.x0*P,v.y0*P,v.vw*P,v.vh*P,0,0,mc.width,mc.height);}
+function toGrid(e){const rc=mc.getBoundingClientRect(),v=view();return{x:v.x0+(e.clientX-rc.left)/rc.width*v.vw,y:v.y0+(e.clientY-rc.top)/rc.height*v.vh};}
+function hit(p){if(pkt&&Math.hypot(p.x-pkt.x,p.y-(pkt.y-12))<9)return{kind:'step'};for(const k in NODES){const[x,y]=NODES[k],bx=NODEBOX[k];if(p.x>=x+bx[0]&&p.x<=x+bx[0]+bx[2]&&p.y>=y+bx[1]&&p.y<=y+bx[1]+bx[3])return{kind:'node',id:k};}return null;}
+mc.addEventListener('mousemove',e=>{mc.style.cursor=hit(toGrid(e))?'pointer':'default';});
+mc.addEventListener('click',e=>{const h=hit(toGrid(e));if(!h)return;if(h.kind==='step'){sel={kind:'step'};}else{sel=h;follow=false;setFollow();const[x,y]=NODES[h.id];camT={x:x,y:y-14,z:2.6};}document.getElementById('hint').hidden=true;ui();});
+function setFollow(){document.getElementById('follow').setAttribute('aria-pressed',String(follow));}
+document.getElementById('follow').onclick=()=>{follow=!follow;setFollow();if(!follow)camT={x:170,y:100,z:1};};
+document.getElementById('zoomout').onclick=()=>{follow=false;setFollow();camT={x:170,y:100,z:1};if(sel.kind==='node'){sel={kind:'step'};ui();}};
+
+/* ---------------- UI ---------------- */
+let sel={kind:'step'};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const dl=f=>'<dl class="f">'+f.map(p=>'<dt>'+esc(p[0])+'</dt><dd>'+esc(p[1])+'</dd>').join('')+'</dl>';
+function nest(L,i){if(i>=L.length)return'';const x=L[i];return '<div class="layer k-'+x.k+'"><div class="lh">'+esc(x.n)+'</div>'+dl(x.f)+(x.avp?'<div class="avp"><div class="lh">Attributes (AVPs)</div>'+dl(x.avp)+'</div>':'')+nest(L,i+1)+'</div>';}
+function certHTML(c){return '<div class="cert'+(c.bad?' bad':'')+'"><div class="lh">'+esc(c.t)+'</div>'+dl(c.f)+'<ul class="checks" aria-label="'+esc(c.by)+'">'+(c.ok||[]).map(t=>'<li>'+esc(t)+'</li>').join('')+(c.x||[]).map(t=>'<li class="x">'+esc(t)+'</li>').join('')+'</ul><div class="sub" style="margin-top:6px">'+esc(c.by)+'</div></div>';}
+function inspector(){const el=document.getElementById('insp');let h='';
+ if(sel.kind==='node'){const n=NODEINFO[sel.id];h='<div class="ih"><div><div class="eyebrow">Device</div><h2 style="margin-top:8px">'+esc(n.t)+'</h2><div class="sub">'+esc(n.sub)+'</div></div><button class="back" id="back">◀ Packet</button></div>';
+  h+='<ul class="facts">'+n.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>';if(n.code)h+='<pre class="code">'+n.code+'</pre>';}
+ else{const s=steps[si];h='<div class="ih"><div><div class="eyebrow">Message '+(si+1)+' of '+steps.length+'</div><h2 style="margin-top:8px">'+esc(s.n)+'</h2><div class="sub">'+esc(s.p)+'</div></div></div>';
+  if(s.lan)h+='<div class="stackt">On the access port · EAPOL</div>'+nest(s.lan,0);
+  if(s.rad)h+='<div class="stackt">Across the network · RADIUS</div>'+nest(s.rad,0);
+  if(!s.lan&&!s.rad)h+='<div class="sub">No packet on the wire. The NAD is waiting for a reply that never arrives.</div>';
+  if(s.cert)h+=certHTML(s.cert);
+  if(s.tip)h+='<div class="tip"><b>Why it matters</b>'+esc(s.tip)+'</div>';}
+ el.innerHTML=h;const bk=document.getElementById('back');if(bk)bk.onclick=()=>{sel={kind:'step'};camT={x:170,y:100,z:1};ui();};}
+function ui(){const s=steps[si];
+ document.getElementById('cap1').textContent=scen.n+' · step '+(si+1)+' of '+steps.length;
+ document.getElementById('cap2').textContent=s.n;document.getElementById('cap3').textContent=s.d;
+ const out=document.getElementById('out');if(finished){out.hidden=false;out.textContent=scen.out;out.className='out '+(scen.bad?'fail':'ok');}else out.hidden=true;
+ document.getElementById('pp').textContent=finished?'Replay':(play?'Pause':'Play');
+ document.querySelectorAll('#scen button').forEach(bn=>bn.setAttribute('aria-pressed',String(bn.dataset.id===scen.id)));
+ document.querySelectorAll('#ladder .row').forEach((rw,i)=>{rw.classList.toggle('cur',i===si);rw.classList.toggle('done',i<si);rw.setAttribute('aria-current',i===si?'step':'false');});
+ inspector();}
+const LANEX={S:1/6,N:3/6,F:4.1/6,A:5/6};
+function trackHTML(s){if(!s.lane||s.lane.length<2)return '<div class="track"><div class="ln" style="left:16.6%"></div><div class="ln" style="left:50%"></div><div class="ln" style="left:83.3%"></div><span class="xx" style="left:calc(50% + 8px)">…</span></div>';
+ const a=LANEX[s.lane[0]],z=LANEX[s.lane[s.lane.length-1]],col=s.seg.length?s.seg[s.seg.length-1].c:C.fail,lo=Math.min(a,z)*100,hi=Math.max(a,z)*100,right=z>a,cut=s.seg.some(x=>x.end);
+ let h='<div class="track"><div class="ln" style="left:16.6%"></div><div class="ln" style="left:50%"></div><div class="ln" style="left:83.3%"></div>';
+ h+='<div class="ar" style="left:'+lo+'%;width:'+(hi-lo)+'%;background:'+col+'"></div>';
+ if(cut)h+='<span class="xx" style="left:calc('+(z*100)+'% - 6px)">✕</span>';
+ else h+='<div class="hd" style="left:'+(right?'calc('+hi+'% - 8px)':lo+'%')+';'+(right?'border-left:9px solid '+col:'border-right:9px solid '+col)+'"></div>';
+ return h+'</div>';}
+function buildLadder(){const el=document.getElementById('ladder');let h='<div class="lanehead"></div><div class="lanehead">Message</div><div class="lanehead lanes3"><span>Laptop</span><span>NAD</span><span>ISE</span></div>';
+ steps.forEach((s,i)=>{h+='<div class="row" role="button" tabindex="0" data-i="'+i+'"><div class="num">'+(i+1)+'</div><div class="nm">'+esc(s.n)+'</div><div>'+trackHTML(s)+'</div></div>';});
+ el.innerHTML=h;el.querySelectorAll('.row').forEach(rw=>{const go=()=>{play=true;goStep(+rw.dataset.i);document.getElementById('map').scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});};rw.onclick=go;rw.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};});}
+function buildScen(){const el=document.getElementById('scen');el.innerHTML=SCEN.map(s=>'<button data-id="'+s.id+'" class="'+(s.bad?'bad':'')+'">'+esc(s.n)+'</button>').join('');el.querySelectorAll('button').forEach(bn=>bn.onclick=()=>setScenario(bn.dataset.id));}
+document.getElementById('pp').onclick=()=>{if(finished){play=true;goStep(0);return;}play=!play;ui();};
+document.getElementById('nx').onclick=()=>{goStep(si+1);};
+document.getElementById('prev').onclick=()=>{goStep(si-1);};
+document.getElementById('rs').onclick=()=>{play=true;goStep(0);};
+document.querySelectorAll('#speed button').forEach(bn=>bn.onclick=()=>{speed=+bn.dataset.s;document.querySelectorAll('#speed button').forEach(x=>x.setAttribute('aria-pressed',String(x===bn)));});
+document.addEventListener('keydown',e=>{const t=e.target.tagName;if(t==='BUTTON'||t==='INPUT'||(e.target.classList&&e.target.classList.contains('row')))return;
+ if(e.key===' '){e.preventDefault();document.getElementById('pp').click();}else if(e.key==='ArrowRight')goStep(si+1);else if(e.key==='ArrowLeft')goStep(si-1);else if(e.key==='Escape')document.getElementById('zoomout').click();});
+
+/* quiz */
+let score=0,answered=0;
+function buildQuiz(){const el=document.getElementById('quiz');el.innerHTML=QUIZ.map((q,i)=>'<div class="win q" data-q="'+i+'"><div class="qn">Question '+(i+1)+'</div><h3>'+esc(q.q)+'</h3><div class="opts">'+q.o.map((o,j)=>'<button data-j="'+j+'">'+esc(o)+'</button>').join('')+'</div><p class="fb" hidden></p></div>').join('');
+ el.querySelectorAll('.q').forEach(card=>{const q=QUIZ[+card.dataset.q];card.querySelectorAll('.opts button').forEach(bn=>bn.onclick=()=>{if(card.dataset.done)return;card.dataset.done=1;const j=+bn.dataset.j,ok=j===q.a;bn.classList.add(ok?'right':'wrong');if(!ok)card.querySelector('[data-j="'+q.a+'"]').classList.add('right');const fb=card.querySelector('.fb');fb.hidden=false;fb.textContent=(ok?'Correct. ':'Not quite. ')+q.e;answered++;if(ok)score++;document.getElementById('score').textContent='Score '+score+' / '+answered;});});}
+
+/* boot */
+function frame(){clk++;g.drawImage(bgc,0,0);fx();seaLife();cloudWorld();boats();dinos();rf();devices();selection();waiting();weather();labels();banner();storm();tick();drawEffects();fireworks();updateCam();blit();requestAnimationFrame(frame);}
+buildScen();buildLadder();buildQuiz();goStep(0);
+(document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>frame());
+</script>
+</body>
+</html>
