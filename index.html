@@ -590,15 +590,15 @@ const R8={n:'Branch authorises the user',p:'At the branch',lane:['B'],seg:[],fin
  tip:'One proxy in the DMZ can serve many branches over RadSec, each with its own certificate, without exposing RADIUS to the Internet or opening a VPN for it.'};
 
 /* --- Blast-RADIUS: plain UDP RADIUS with MAB --- */
-const B1={n:'A printer joins · MAB over plain RADIUS',p:'Branch → ISE',lane:['B','A'],seg:[{k:['BX','XA'],c:C.radius}],
+const B1={n:'A printer joins · MAB over plain RADIUS',p:'Branch → ISE',lane:['B','A'],seg:[{k:['BX','XA','FA'],c:C.radius}],
  d:'This time the branch has no RadSec. A printer that cannot do 802.1X is authorised by its MAC address (MAB). The branch sends a plain UDP Access-Request straight across the Internet.',
  st:[{t:'Across the Internet · plain UDP',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq)]}],
  tip:'MAB is not EAP, so RFC 2869 does not force a Message-Authenticator onto the packet. That missing attribute is exactly what Blast-RADIUS (CVE-2024-3596) needs.'};
-const B2={n:'On-path attacker injects collision data',p:'Dino World ✕',lane:['B','A'],seg:[{k:['BX'],c:C.forge},{k:['XA'],c:C.radius}],forge:'inject',
+const B2={n:'On-path attacker injects collision data',p:'Dino World ✕',lane:['B','A'],seg:[{k:['BX'],c:C.forge},{k:['XA','FA'],c:C.radius}],forge:'inject',
  d:'A raptor on the path lets the request through, but first slips crafted bytes into a Proxy-State attribute. It does not know the shared secret and does not need to.',
  st:[{t:'Tampered request · forwarded to ISE',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq.concat([['Proxy-State','Attacker-chosen bytes · an MD5 chosen-prefix collision']]))]}],
  tip:'RADIUS echoes Proxy-State back unchanged in the response, so the attacker’s bytes end up inside the server’s Response Authenticator calculation. This is the lever the attack pulls.'};
-const B3={n:'ISE legitimately rejects the printer',p:'ISE → attacker',lane:['A','B'],seg:[{k:['-XA'],c:C.radius},{k:['-BX'],c:C.forge,end:'forge'}],forge:'reject',
+const B3={n:'ISE legitimately rejects the printer',p:'ISE → attacker',lane:['A','B'],seg:[{k:['-FA','-XA'],c:C.radius},{k:['-BX'],c:C.forge}],forge:'reject',
  d:'ISE has no rule for this MAC, so it correctly answers Access-Reject. The attacker intercepts it before it reaches the branch.',
  st:[{t:'The genuine reply · intercepted',L:[ipPub('198.51.100.10','203.0.113.7'),radMAB('3 · Access-Reject',88,[['Reply-Message','Unknown device'],['Proxy-State','echoed back unchanged']])]}],
  tip:'Everything ISE did was correct. The weakness is not in the server’s decision; it is in how a RADIUS response is authenticated on an untrusted path.'};
@@ -680,7 +680,7 @@ const DES=(x,y)=>x+(vn(x/8+40,y/8)-.5)*14<104&&y+(vn(x/8,y/8+40)-.5)*10<112;
 const FX0=216,FX1=326,FY0=126,FY1=184;
 const DMZ=(x,y)=>x>FX0&&x<FX1&&y>FY0&&y<FY1+2;
 const NODES={S:[44,140],N:[110,140],R:[170,96],F:[230,96],A:[292,56],W:[56,80],I:[292,156],C:[192,22],L:[44,95],B:[270,194],P:[270,150]};
-const PATHS={SN:[[44,140],[110,140]],NR:[[110,140],[140,140],[140,96],[170,96]],RF:[[170,96],[230,96]],FA:[[230,96],[260,96],[260,56],[292,56]],NW:[[110,140],[110,110],[56,110],[56,80]],FI:[[230,96],[230,116],[292,116],[292,156]],BP:[[270,194],[270,150]],PF:[[270,150],[270,110],[230,110],[230,96]],BX:[[270,194],[270,134]],XA:[[270,134],[270,110],[280,86],[292,66],[292,56]]};
+const PATHS={SN:[[44,140],[110,140]],NR:[[110,140],[140,140],[140,96],[170,96]],RF:[[170,96],[230,96]],FA:[[230,96],[260,96],[260,56],[292,56]],NW:[[110,140],[110,110],[56,110],[56,80]],FI:[[230,96],[230,116],[292,116],[292,156]],BP:[[270,194],[270,150]],PF:[[270,150],[270,110],[230,110],[230,96]],BX:[[270,194],[270,134]],XA:[[270,134],[270,110],[230,110],[230,96]]};
 function stamp(x,y,rd){for(let j=-rd;j<=rd;j++)for(let i=-rd;i<=rd;i++)if(inb(x+i,y+j))PM[(y+j)*W+x+i]=1;}
 for(const k in PATHS){const p=PATHS[k];for(let s=0;s<p.length-1;s++){const a=p[s],c=p[s+1];const L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let t=0;t<=L;t++)stamp(a[0]+Math.sign(c[0]-a[0])*t,a[1]+Math.sign(c[1]-a[1])*t,4);}}
 for(const k in NODES)stamp(NODES[k][0],NODES[k][1],12);
