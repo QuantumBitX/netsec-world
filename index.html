@@ -886,7 +886,7 @@ const NODEBOX={S:[-11,-25,22,30],N:[-14,-20,28,25],R:[-11,-22,22,27],F:[-14,-30,
 function selection(){if(sel.kind!=='node')return;const k=sel.id,[x,y]=NODES[k],bx=NODEBOX[k],o=(clk>>3)%2,x0=x+bx[0]-o,y0=y+bx[1]-o,x1=x+bx[0]+bx[2]+o,y1=y+bx[1]+bx[3]+o,c='#F8D830';
  [[x0,y0,1,1],[x1-3,y0,1,-1],[x0,y1-1,-1,1],[x1-3,y1-1,-1,-1]].forEach(([px,py,a,bb])=>{r(px,py,4,1,c);r(a>0?px:px+3,bb>0?py:py-3,1,4,c);});}
 function label(t,cx,cy,lock){g.font='10px "Press Start 2P"';const w=g.measureText(t).width+12,x=Math.min(Math.max(cx*P-w/2,6),674-w),y=cy*P;g.fillStyle='#181848';g.fillRect(x-3,y-3,w+6,22);g.fillStyle=lock?'#A0A0B0':'#F8F8F8';g.fillRect(x,y,w,16);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,x+w/2,y+13);}
-function labels(){label('Supplicant',44,146);label('NAD',110,146);label('Router',170,101);label('Firewall',230,101);label('ISE (RADIUS)',292,6);label('Wi-Fi AP',56,48,!unlocked);if(unlocked)label('Client',35,101);if(unlocked3){label('RadSec proxy',262,168);label('Branch',245,186);label('Internet',302,150,0);}else label('Internet',292,162,1);
+function labels(){label('Supplicant',44,146);label('NAD',110,146);label('Router',170,101);label('Firewall',230,101);label('ISE (RADIUS)',292,6);label('Wi-Fi AP',56,48,!unlocked);if(unlocked)label('Client',35,101);if(unlocked3){label('Proxy',248,168);label('Branch',244,190);label('Web',308,152,0);}else label('Web',292,162,1);
  board(239,130,['Dino','World','DMZ'],0);board(318,80,['DC ISE','World'],1);}
 function banner(){g.font='10px "Press Start 2P"';g.fillStyle='#181848';g.fillRect(8,8,300,30);g.fillStyle='#F8F8F8';g.fillRect(11,11,294,24);g.fillStyle='#181848';g.fillRect(14,14,288,18);g.fillStyle='#F8D830';g.textAlign='left';g.fillText(WORLDS[WORLD].banner,22,28);}
 /* cloud access world */
@@ -1079,7 +1079,7 @@ function drawUnlock(){if(unlockFx<=0)return;unlockFx--;if(unlockFx>160&&unlockFx
 const BRANCH_ISL=[];(()=>{const ins=(x,y)=>((x)/16)**2+((y)/8)**2<=1;for(let y=-9;y<=9;y++)for(let x=-17;x<=17;x++){if(!ins(x,y))continue;const edge=!ins(x+1,y)||!ins(x-1,y)||!ins(x,y+1)||!ins(x,y+2);let c;if(y>5)c='#C8A05C';else if(edge)c='#C8A05C';else c=((x*3+y*5)%11==0)?'#30A030':'#42B342';if(y<=5&&(x< -12))c='#E0C080';BRANCH_ISL.push([x,y,c]);}})();
 function branchIsland(){const[cx,cy]=NODES.B,st=WORLD==='1-3'?(authed?'ok':(failed?'fail':'idle')):'idle';
  for(const[x,y,c]of BRANCH_ISL){r(cx+x,cy+y,1,1,c);}
- const bx=cx-2,by=cy-3;ob(bx-5,by-7,11,7,'#8894B0');r(bx-4,by-6,9,5,'#5A6788');for(let i=0;i<3;i++)r(bx-3+i*3,by-5,2,2,authed&&WORLD==='1-3'?'#48D880':'#38507A');
+ const bx=cx-2,by=cy+2;ob(bx-5,by-7,11,7,'#8894B0');r(bx-4,by-6,9,5,'#5A6788');for(let i=0;i<3;i++)r(bx-3+i*3,by-5,2,2,authed&&WORLD==='1-3'?'#48D880':'#38507A');
  r(bx+2,by-12,1,5,'#C0C0C8');r(bx+2,by-13,1,1,(WORLD==='1-3'&&clk%30<15)?'#F85050':'#884040');
  if(WORLD==='1-3'&&!failed)for(let k=0;k<2;k++){const rr=3+((clk*0.3+k*4)%8),al=Math.max(0,0.7-rr/12);g.fillStyle='rgba(120,230,255,'+al.toFixed(2)+')';for(let a=-2.3;a<-0.8;a+=0.5)g.fillRect(Math.round(bx+2+Math.cos(a)*rr)*P,Math.round(by-13+Math.sin(a)*rr*0.7)*P,P,P);}}
 function radsecProxy(){const[x,y]=NODES.P,act=WORLD==='1-3',on=act&&authed,bad=act&&failed;
