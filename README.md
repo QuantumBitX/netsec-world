@@ -26,7 +26,7 @@ The same laptop goes wireless. Beacons and association, EAP-TLS over the air thr
 *Scenarios: happy path · untrusted server certificate (evil twin) · firewall dropping fragmented RADIUS.*
 
 ### World 1-3 · RadSec across the Internet (Dino World DMZ)
-A remote branch office authenticates to head-office ISE across the public Internet. The branch switch builds a mutually authenticated TLS 1.3 tunnel on TCP 2083 to a RadSec proxy in the DMZ, which relays RADIUS to ISE. Includes a Blast-RADIUS demonstration showing why plain UDP RADIUS with MAB can be forged on an untrusted path, and how RadSec shuts it down.
+A remote branch office authenticates to head-office ISE across the public Internet. The branch switch builds a mutually authenticated TLS 1.3 tunnel on TCP 2083 to a RadSec proxy in the DMZ. Because the DMZ is only semi-trusted, the proxy protects its own hop to ISE too, with RADIUS over DTLS. Includes a Blast-RADIUS demonstration showing why plain UDP RADIUS with MAB can be forged on an untrusted path, and how RadSec shuts it down.
 *Scenarios: happy path · Blast-RADIUS forgery · proxy certificate rejected · firewall blocking TCP 2083.*
 
 ## Unlocking
@@ -50,13 +50,29 @@ A single self-contained `index.html` — no build step and no dependencies (font
 Addresses, names and identifiers throughout are illustrative examples.
 
 - EAP-TLS is shown with TLS 1.2 (RFC 5216). In TLS 1.2 the handshake, including both certificates, is not encrypted, so the switch, the firewall and anyone else on the path can read it, although they cannot alter it or learn the keys. EAP-TLS with TLS 1.3 (RFC 9190) shortens the exchange and encrypts the certificates, but keeps the same roles.
-- EAP-TLS fragments are sized by the EAP MTU of the access link, which the NAD sends to ISE as Framed-MTU. Worlds 1-1 and 1-2 use 1300, so RADIUS packets carrying certificates stay under a 1500-byte path MTU. The World 1-2 fragmentation scenario uses 1500 to show what happens otherwise.
+- EAP-TLS splits certificate flights into fragments. ISE keeps the TLS data in each of its fragments to about 1,000 bytes, so its replies fit in one IP packet. The laptop picks its own fragment size, often about 1,400 bytes, so the Access-Request carrying its certificate can exceed 1,500 bytes and cross the network as IP fragments. That is the failure the World 1-2 fragmentation scenario shows.
 - Every RADIUS packet's Authenticator is labelled for what it really is: a random Request Authenticator in an Access-Request, and an MD5 Response Authenticator (over the packet, the request authenticator and the shared secret) in every response. The response authenticator is what Blast-RADIUS forges.
-- World 1-2 shows WPA2-Enterprise with CCMP-128; WPA3-Enterprise uses the same steps and makes Protected Management Frames mandatory.
-- World 1-3 shows RadSec / RADIUS-over-TLS on TCP 2083 with a TLS 1.3 tunnel, including the proxy's CertificateVerify. RadSec was specified in the experimental RFC 6614; the IETF RADEXT group's replacement, draft-ietf-radext-radiusdtls-bis, is in IESG evaluation as of October 2026. World 1-3 also shows the Blast-RADIUS attack (CVE-2024-3596). The attack is a conceptual illustration of what the weakness allows and how to defend against it, not a working exploit.
+- World 1-2 shows WPA2-Enterprise with CCMP-128. WPA3-Enterprise follows the same steps but makes Protected Management Frames mandatory and, in WPA3-only mode, uses AKM 00-0F-AC:5 (802.1X with SHA-256), which changes the key derivation and the 4-way handshake's MIC.
+- World 1-3 shows RadSec / RADIUS-over-TLS on TCP 2083 with a TLS 1.3 tunnel, including the proxy's CertificateVerify, and RADIUS over DTLS (UDP 2083) from the DMZ proxy to ISE. As of ISE 3.4, ISE supports RADIUS over DTLS but not over TCP TLS, which is one reason the proxy terminates the branches' RadSec. RadSec was specified in the experimental RFC 6614; the IETF RADEXT group's replacement, draft-ietf-radext-radiusdtls-bis, is in IESG evaluation as of October 2026. World 1-3 also shows the Blast-RADIUS attack (CVE-2024-3596). The attack is a conceptual illustration of what the weakness allows and how to defend against it, not a working exploit.
 - Device configuration is shown in real syntax but trimmed for teaching. Check it against your vendor's documentation and software version before using it.
 
 ## Changelog
+
+### October 2026 · security design review
+
+A second review checked every hop for which trust zone it crosses, what protects it, and whether the game's claims about trust match the map.
+
+**Trust zones (World 1-3)**
+- **The proxy's hop to ISE is now protected.** The proxy sits in the DMZ, which holds Internet-facing systems and is only semi-trusted, but the game sent it to ISE in clear-text UDP RADIUS and called that hop "inside the trusted data centre". It now uses RADIUS over DTLS on UDP 2083, which ISE supports natively. Steps 5 and 6, the Blast-RADIUS scenario, the proxy, firewall and ISE panels, and quiz question 4 have been updated.
+- **Each firewall rule now sits on the right firewall.** The inbound TCP 2083 rule from the branches is on the Internet edge in front of the DMZ (the Web pad). The data centre firewall now allows only the proxy, and only RADIUS/DTLS on UDP 2083, to reach ISE. The "Firewall blocks 2083" scenario now drops the connection at the Internet edge.
+- **Configuration.** `radsecproxy.conf` now forwards to ISE with `type dtls` and the fixed `radius/dtls` secret ISE expects, checks ISE's certificate by name, and turns off name checking for the branch prefix, which has no name to check, matching the subjectAltName instead. The ISE panel shows the proxy as a "DTLS Required" network device. The proxy's certificate now covers client as well as server authentication, since it is a TLS server to the branches and a DTLS client to ISE.
+- **Blast-RADIUS defence.** The ISE panel now says ISE can drop Access-Requests without a Message-Authenticator through an Allowed Protocols setting, off by default, rather than claiming it enforces this on every request and response.
+
+**Corrections from vendor documentation**
+- **EAP-TLS fragment sizes (Worlds 1-1 and 1-2).** ISE keeps its EAP-TLS fragments to about 1,000 bytes whatever Framed-MTU the NAD sends, so the earlier fragmentation scenario, where ISE's reply was IP-fragmented, could not happen with ISE. The scenario now drops the laptop's certificate on its way to ISE: the laptop's larger fragments plus the AP's RADIUS attributes exceed 1,500 bytes. The tips, the router and firewall panels, and quiz question 6 have been updated to match.
+- **Framed-MTU (World 1-1).** The wired NAD is back to Framed-MTU 1500. The `dot1x mtu 1300` line, which couldn't be confirmed to set Framed-MTU, has been removed.
+- **WPA3-Enterprise.** The footnote now says WPA3-only mode also changes the AKM to 00-0F-AC:5, and the beacon tip mentions it.
+- **MPPE keys (World 1-2).** The keys panel now notes that the encryption protecting the PMK in the Access-Accept is MD5-based and only as strong as the RADIUS shared secret.
 
 ### October 2026 · accuracy review
 
