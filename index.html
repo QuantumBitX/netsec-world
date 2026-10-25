@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="A 16-bit overworld for learning network security: 802.1X with EAP-TLS on wired and Wi-Fi networks, with animated packets, inspectors, failure scenarios and quizzes.">
-<meta property="og:title" content="NetSec World · 802.1X EAP-TLS">
-<meta property="og:description" content="Follow one laptop through 802.1X EAP-TLS on a playable 16-bit map, wired and over Wi-Fi.">
+<meta name="description" content="A 16-bit overworld for learning network security: 802.1X with EAP-TLS on wired and Wi-Fi networks, and RadSec across the Internet, with animated packets, inspectors, failure scenarios and quizzes.">
+<meta property="og:title" content="NetSec World · 802.1X, Wi-Fi and RadSec">
+<meta property="og:description" content="Follow packets through 802.1X EAP-TLS, Wi-Fi keying and RadSec on a playable 16-bit map.">
 <meta property="og:type" content="website">
 <title>NetSec World</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -182,7 +182,7 @@ footer{font-size:14px;color:var(--muted)}
       <div class="worlds" role="group" aria-label="World" id="worlds"></div>
       <div class="scen" role="group" aria-label="Scenario" id="scen"></div>
       <div class="win mapbox">
-        <canvas id="map" width="1360" height="800" role="img" aria-label="Pixel art overworld map of the network: supplicant laptop, access switch NAD, router, firewall, and ISE RADIUS server in DC ISE World, with a Wi-Fi access point and wireless laptop in a desert, and the Internet in Dino World DMZ."></canvas>
+        <canvas id="map" width="1360" height="800" role="img" aria-label="Pixel art overworld map of the network: supplicant laptop, access switch NAD, router, firewall, and ISE RADIUS server in DC ISE World, with a Wi-Fi access point and wireless laptop in a desert, and the Internet in Dino World DMZ, where a branch office connects to a RadSec proxy."></canvas>
         <div class="mapbar">
           <button id="follow" aria-pressed="false">Follow packet</button>
           <button id="zoomout">Whole map</button>
@@ -228,7 +228,7 @@ footer{font-size:14px;color:var(--muted)}
     <div class="quiz" id="quiz"></div>
   </section>
 
-  <footer>Addresses, names and identifiers are illustrative examples. The handshake shown is EAP-TLS with TLS 1.2 (RFC 5216); EAP-TLS 1.3 (RFC 9190) shortens the flight but keeps the same roles. World 1-2 shows WPA2-Enterprise with CCMP-128; WPA3-Enterprise uses the same steps and makes Protected Management Frames mandatory. World 1-3 shows RadSec (RADIUS over TLS, RFC 6614, being revised by the IETF RADEXT group) and the Blast-RADIUS attack (CVE-2024-3596) it prevents.</footer>
+  <footer>Addresses, names and identifiers are illustrative examples. The handshake shown is EAP-TLS with TLS 1.2 (RFC 5216), where the handshake, including both certificates, travels unencrypted; EAP-TLS 1.3 (RFC 9190) shortens the flight and encrypts the certificates, but keeps the same roles. World 1-2 shows WPA2-Enterprise with CCMP-128; WPA3-Enterprise uses the same steps and makes Protected Management Frames mandatory. World 1-3 shows RadSec (RADIUS over TLS, RFC 6614, being replaced by the IETF RADEXT draft draft-ietf-radext-radiusdtls-bis) with a TLS 1.3 tunnel, and the Blast-RADIUS attack (CVE-2024-3596) it prevents.</footer>
 </div>
 
 <script>
@@ -247,12 +247,16 @@ const E0=eapol('0 · EAP-Packet');
 const eap=(code,id,type,more)=>({n:'EAP',k:'eap',f:[['Code',code],['Identifier',String(id)]].concat(type?[['Type',type]]:[]).concat(more||[])});
 const tls=recs=>({n:'TLS records (inside EAP-TLS)',k:'tls',f:recs});
 const MA=['Message-Authenticator','HMAC-MD5 over the packet, keyed with the shared secret'];
-const reqAV=st=>[['User-Name',ID],['Service-Type','Framed (2)'],['Framed-MTU','1500'],['NAS-IP-Address','10.10.99.2'],['NAS-Port-Type','Ethernet (15)'],['NAS-Port-Id','GigabitEthernet1/0/12'],['Calling-Station-Id','00-1A-2B-3C-4D-5E'],['Called-Station-Id','70-10-6F-A1-00-0C']].concat(st?[['State',st]]:[]).concat([['EAP-Message','EAP packet, shown below'],MA]);
+const reqAV=st=>[['User-Name',ID],['Service-Type','Framed (2)'],['Framed-MTU','1300'],['NAS-IP-Address','10.10.99.2'],['NAS-Port-Type','Ethernet (15)'],['NAS-Port-Id','GigabitEthernet1/0/12'],['Calling-Station-Id','00-1A-2B-3C-4D-5E'],['Called-Station-Id','70-10-6F-A1-00-0C']].concat(st?[['State',st]]:[]).concat([['EAP-Message','EAP packet, shown below'],MA]);
 const chAV=()=>[['State',STATE],['Session-Timeout','30'],['EAP-Message','EAP packet, shown below'],MA];
-const rad=(code,id,avp)=>({n:'RADIUS',k:'rad',f:[['Code',code],['Identifier',String(id)],['Authenticator','16 random bytes']],avp:avp});
+/* Access-Request carries a random Request Authenticator; every response carries an MD5 Response Authenticator */
+const isReq=code=>String(code).split(' ')[0]==='1';
+const AUTH_REQ='Request Authenticator · 16 random bytes';
+const AUTH_RSP='Response Authenticator · MD5 over the packet, the request authenticator and the shared secret';
+const rad=(code,id,avp)=>({n:'RADIUS',k:'rad',f:[['Code',code],['Identifier',String(id)],['Authenticator',isReq(code)?AUTH_REQ:AUTH_RSP]],avp:avp});
 const acceptAV=[['User-Name',ID],['Class','CACS:0A0A630200000012A4F3C1D2:ise-psn01'],['Tunnel-Type','VLAN (13)'],['Tunnel-Medium-Type','IEEE-802 (6)'],['Tunnel-Private-Group-ID','20'],['MS-MPPE-Send-Key','32 bytes, encrypted with the shared secret'],['MS-MPPE-Recv-Key','32 bytes, encrypted with the shared secret'],['EAP-Message','EAP-Success'],MA];
 const SERVER_CERT={t:'Server certificate · ISE EAP identity',f:[['Subject','CN=ise-psn01.corp.example'],['SAN','DNS:ise-psn01.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-03-02 → 2028-03-01'],['Key','RSA 2048 · SHA-256 signature'],['EKU','Server Authentication (1.3.6.1.5.5.7.3.1)']],by:'Checked by the supplicant',ok:['Chains to Corp Root CA in the trust store','Name is in the allowed server list','Inside its validity period']};
-const BAD_SERVER_CERT=Object.assign({},SERVER_CERT,{bad:1,ok:null,x:['Issuer chain ends at a root the laptop does not trust','Or the name is not in the allowed server list']});
+const BAD_SERVER_CERT=Object.assign({},SERVER_CERT,{bad:1,ok:null,x:['Issuer chain ends at a root the laptop does not trust']});
 const CLIENT_CERT={t:'Client certificate · machine identity',f:[['Subject','CN=laptop-042.corp.example'],['SAN','DNS:laptop-042.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-01-15 → 2027-01-15'],['Key','RSA 2048 · private key held in the TPM'],['EKU','Client Authentication (1.3.6.1.5.5.7.3.2)']],by:'Checked by ISE',ok:['Chains to a CA in the ISE trusted store','Inside its validity period','Not revoked (OCSP or CRL)','CertificateVerify proves the laptop holds the private key']};
 const EXP_CERT=Object.assign({},CLIENT_CERT,{bad:1,f:CLIENT_CERT.f.map(p=>p[0]=='Valid'?['Valid','2024-10-01 → 2025-10-01 (expired)']:p),ok:['Chains to a CA in the ISE trusted store'],x:['notAfter 2025-10-01 is in the past']});
 
@@ -283,13 +287,13 @@ const S5={n:'TLS ClientHello',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:
  d:'The laptop starts the TLS handshake. The ClientHello rides inside EAP-TLS, inside EAPOL, then inside RADIUS.',
  lan:[ethUp,E0,eap('2 · Response',2,'13 · EAP-TLS',[['Flags','0x00']]),tCH],
  rad:[ipUp,rad('1 · Access-Request',38,reqAV(STATE)),eap('2 · Response',2,'13 · EAP-TLS',[['Flags','0x00']]),tCH],
- tip:'Three layers of tunnelling at once. The switch and the firewall forward this TLS handshake without being able to read or alter it.'};
+ tip:'Three layers of tunnelling at once. The switch and the firewall forward this TLS handshake but cannot tamper with it or learn the session keys. With TLS 1.2 the handshake itself is not encrypted, so anyone on the path can read it, including both certificates. EAP-TLS with TLS 1.3 hides them.'};
 const S6={n:'ServerHello, Certificate, CertificateRequest',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.tls},{k:['-SN'],c:C.tls}],
  d:'ISE presents its certificate and asks the laptop for one too. The supplicant checks the server certificate before going any further.',
  rad:[ipDn,rad('11 · Access-Challenge',38,chAV()),eap('1 · Request',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tSH],
  lan:[ethDn,E0,eap('1 · Request',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tSH],
  cert:SERVER_CERT,
- tip:'A certificate chain is bigger than one RADIUS packet allows (Framed-MTU 1500), so this flight is really split into several EAP-TLS fragments, each acknowledged by an empty response. The animation shows them as one.'};
+ tip:'A certificate chain is bigger than the EAP MTU of the access link, which the NAD tells ISE in Framed-MTU (1300 here). So this flight is really split into several EAP-TLS fragments, each acknowledged by an empty response. The animation shows them as one. RADIUS itself could carry up to 4,096 bytes.'};
 const S7={n:'Certificate, ClientKeyExchange, CertificateVerify, Finished',p:'Laptop → NAD → ISE',lane:['S','N','A'],seg:[{k:['SN'],c:C.tls},{k:UP,c:C.tls}],
  d:'The laptop sends its own certificate and signs the handshake with its private key, proving it really owns the certificate.',
  lan:[ethUp,E0,eap('2 · Response',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tCC],
@@ -297,7 +301,7 @@ const S7={n:'Certificate, ClientKeyExchange, CertificateVerify, Finished',p:'Lap
  cert:CLIENT_CERT,
  tip:'The certificate on its own proves nothing, because certificates are public. CertificateVerify is the proof: only the holder of the private key can produce that signature. Like the server flight, this one is normally split into several EAP-TLS fragments.'};
 const S8={n:'ChangeCipherSpec, Finished',p:'ISE → NAD → Laptop',lane:['A','N','S'],seg:[{k:DOWN,c:C.tls},{k:['-SN'],c:C.tls}],
- d:'ISE accepts the client certificate and finishes the handshake. Both sides now hold the same master secret.',
+ d:'ISE accepts the client certificate and finishes the handshake. The two Finished messages prove that the laptop and ISE derived the same keys.',
  rad:[ipDn,rad('11 · Access-Challenge',39,chAV()),eap('1 · Request',4,'13 · EAP-TLS',[['Flags','0x00']]),tFin],
  lan:[ethDn,E0,eap('1 · Request',4,'13 · EAP-TLS',[['Flags','0x00']]),tFin],
  tip:'Mutual authentication is complete at this point: the laptop has verified ISE and ISE has verified the laptop.'};
@@ -341,7 +345,7 @@ const F4={n:'Retransmission, dropped again',p:'NAD → Firewall ✕',lane:['N','
  rad:S3.rad,
  tip:'A retransmission keeps the same RADIUS Identifier (37) so the server can spot duplicates. On Cisco IOS the defaults are a 5 second timeout and 3 retransmits.'};
 const timeout=why=>({n:'RADIUS server marked dead',p:'NAD gives up',lane:['N'],seg:[],final:'fail',wait:1,
- d:'After the last retransmit the NAD marks the server dead. The laptop never hears back and the port stays unauthorised.',tip:why});
+ d:'After the last retransmit the dead criteria configured on the NAD are met, so it marks the server dead. The laptop never hears back and the port stays unauthorised.',tip:why});
 const K3={n:'Access-Request silently discarded by ISE',p:'Laptop → NAD → ISE ✕',lane:['S','N','A'],seg:[{k:['SN'],c:C.eapol},{k:UP,c:C.radius,end:'discard'}],
  d:'The request reaches ISE, but its Message-Authenticator does not verify with the shared secret ISE holds for this switch, so ISE discards it without replying.',
  lan:S3.lan,rad:S3.rad,
@@ -354,16 +358,16 @@ const SCEN11=[
  {id:'ok',n:'Happy path',steps:[S1,S2,S3,S4,S5,S6,S7,S8,S9,S10],out:'Port authorised · VLAN 20'},
  {id:'exp',n:'Expired client cert',bad:1,steps:[S1,S2,S3,S4,S5,S6,Object.assign({},S7,{cert:EXP_CERT}),X8,X9,rej(40,4,'The port stays unauthorised. If an authentication-fail VLAN is configured on the NAD, the laptop lands there instead.')],out:'Access-Reject · certificate expired'},
  {id:'ca',n:'Untrusted server cert',bad:1,steps:[S1,S2,S3,S4,S5,Object.assign({},S6,{cert:BAD_SERVER_CERT}),U7,rej(39,3,'ISE Live Logs show a TLS alert sent by the client, meaning the client rejected the ISE certificate. It is not a problem with the client certificate. Many "ISE rejected my laptop" tickets are really this.')],out:'EAP-Failure · supplicant rejected ISE'},
- {id:'fw',n:'Firewall blocks 1812',bad:1,steps:[S1,S2,F3,F4,timeout('With critical authentication configured, the NAD can put the port in a critical VLAN while every RADIUS server is dead. Otherwise the user simply has no network.')],out:'Timeout · RADIUS never reached ISE'},
+ {id:'fw',n:'Firewall blocks 1812',bad:1,steps:[S1,S2,F3,F4,timeout('With critical authentication configured, the NAD can put the port in a critical VLAN while every RADIUS server is dead. That needs dead-criteria and deadtime on the NAD. Otherwise the user simply has no network.')],out:'Timeout · RADIUS never reached ISE'},
  {id:'key',n:'Shared secret mismatch',bad:1,steps:[S1,S2,K3,K4,timeout('Same symptom as the firewall drop: a timeout on the switch. Check the ISE report for the network device before chasing firewall rules.')],out:'Timeout · ISE discarded the request'}
 ];
 
 const NODEINFO={
  S:{t:'Supplicant · laptop-042',sub:'Wants network access',facts:['Runs the 802.1X supplicant: Windows Wired AutoConfig, macOS eapolclient or wpa_supplicant on Linux.','Holds a machine certificate with its private key protected in the TPM.','Trusts Corp Root CA and only talks to servers named ise-psn01.corp.example.','Speaks EAP over EAPOL, one hop, directly to the switch port.'],
   code:'<span class="cm"># What the 802.1X profile enforces</span>\nEAP method        : EAP-TLS (smart card or other cert)\nClient cert       : CN=laptop-042.corp.example\nTrusted root CA   : Corp Root CA\nConnect to servers: ise-psn01.corp.example\nAuth mode         : Computer authentication'},
- N:{t:'Authenticator · SW-ACC-01',sub:'The NAD: network access device',facts:['Controls the port: only EAPOL until RADIUS says yes.','Relays EAP between EAPOL and RADIUS without understanding EAP-TLS.','Adds port context: NAS-Port-Id, Calling-Station-Id, NAS-IP-Address.','Applies the result, such as the VLAN in Tunnel-Private-Group-ID.'],
-  code:'aaa new-model\naaa authentication dot1x default group ISE\naaa authorization network default group ISE\naaa accounting dot1x default start-stop group ISE\ndot1x system-auth-control\n!\nradius server ISE-PSN01\n address ipv4 10.50.1.10 auth-port 1812 acct-port 1813\n key <span class="cm">&lt;shared secret&gt;</span>\naaa group server radius ISE\n server name ISE-PSN01\nip radius source-interface Vlan99\n!\ninterface GigabitEthernet1/0/12\n switchport mode access\n authentication port-control auto\n dot1x pae authenticator'},
- R:{t:'Router · CORE-RTR-01',sub:'Just another hop for RADIUS',facts:['RADIUS is ordinary UDP, so it is routed like any other traffic.','The NAD sources RADIUS from its management SVI, 10.10.99.2.','Large Access-Challenge packets carrying a certificate chain can approach the path MTU. Framed-MTU on the NAD keeps EAP fragments small enough.'],
+ N:{t:'Authenticator · SW-ACC-01',sub:'The NAD: network access device',facts:['Controls the port: only EAPOL until RADIUS says yes.','Relays EAP between EAPOL and RADIUS without understanding EAP-TLS.','Adds port context: NAS-Port-Id, Calling-Station-Id, NAS-IP-Address.','Applies the result, such as the VLAN in Tunnel-Private-Group-ID.','Marks a RADIUS server dead only when dead-criteria and deadtime are configured.'],
+  code:'aaa new-model\naaa authentication dot1x default group ISE\naaa authorization network default group ISE\naaa accounting dot1x default start-stop group ISE\ndot1x system-auth-control\ndot1x mtu 1300  <span class="cm"># sent to ISE as Framed-MTU</span>\n!\nradius server ISE-PSN01\n address ipv4 10.50.1.10 auth-port 1812 acct-port 1813\n key <span class="cm">&lt;shared secret&gt;</span>\naaa group server radius ISE\n server name ISE-PSN01\nip radius source-interface Vlan99\nradius-server dead-criteria time 5 tries 3\nradius-server deadtime 15  <span class="cm"># minutes before trying it again</span>\n!\ninterface GigabitEthernet1/0/12\n switchport mode access\n authentication port-control auto\n dot1x pae authenticator'},
+ R:{t:'Router · CORE-RTR-01',sub:'Just another hop for RADIUS',facts:['RADIUS is ordinary UDP, so it is routed like any other traffic.','The NAD sources RADIUS from its management SVI, 10.10.99.2.','Access-Challenge packets carrying a certificate chain can exceed the 1500-byte path MTU. Framed-MTU 1300 on the NAD keeps each EAP fragment small enough that the RADIUS packet never needs IP fragmentation.'],
   code:'<span class="cm"># Route the NAD management subnet to the DC</span>\nip route 10.50.1.0 255.255.255.0 10.0.0.2'},
  F:{t:'Firewall · DC-EDGE-FW',sub:'Must permit RADIUS both ways',facts:['Authentication on UDP 1812 and accounting on UDP 1813, NAD to ISE.','Change of Authorization runs the other way, ISE to NAD, on UDP 1700 (Cisco) or 3799 (RFC 5176).','Missing rules show up on the switch as a dead RADIUS server.'],
   code:'rule src             dst            svc       action\n10   10.10.99.0/24   10.50.1.10     udp/1812  permit  <span class="cm"># auth</span>\n11   10.10.99.0/24   10.50.1.10     udp/1813  permit  <span class="cm"># accounting</span>\n12   10.50.1.10      10.10.99.0/24  udp/1700  permit  <span class="cm"># CoA</span>\n99   any             any            any       deny log'},
@@ -375,7 +379,7 @@ const NODEINFO={
 };
 
 const QUIZ11=[
- {q:'Which device relays the TLS handshake without being able to read it?',o:['The supplicant','The NAD (switch)','ISE'],a:1,e:'The NAD only moves the EAP payload between EAPOL and RADIUS. The TLS session is between the laptop and ISE.'},
+ {q:'Which device relays the TLS handshake but cannot tamper with it or decrypt the session?',o:['The supplicant','The NAD (switch)','ISE'],a:1,e:'The NAD only moves the EAP payload between EAPOL and RADIUS. The TLS session is between the laptop and ISE. With TLS 1.2 the NAD could read the certificates, but it cannot change the handshake or derive the keys.'},
  {q:'Which RADIUS attribute carries the EAP packet between the NAD and ISE?',o:['State','Class','EAP-Message','Calling-Station-Id'],a:2,e:'EAP-Message (type 79) carries the EAP payload. Message-Authenticator must accompany it.'},
  {q:'What lets ISE match each Access-Request to the right ongoing conversation?',o:['The State attribute echoed by the NAD','The UDP source port','The EAP Type field'],a:0,e:'ISE hands out State in each Access-Challenge and the NAD returns it in the next Access-Request.'},
  {q:'Which part of the handshake proves the laptop owns its certificate?',o:['Sending the Certificate message','CertificateVerify','ClientHello'],a:1,e:'Certificates are public. Only the private key holder can sign the handshake in CertificateVerify.'},
@@ -396,7 +400,7 @@ const accept2=[['User-Name',ID],['Class','CACS:0A141E0500000031B7E2A9C4:ise-psn0
 const mgmt=(sub,a1,a2)=>({n:'802.11 MAC header',k:'wifi',f:[['Frame control','Management · '+sub],['Address 1 (receiver)',a1],['Address 2 (transmitter)',a2],['Address 3 (BSSID)',BSSID]]});
 const dataUp={n:'802.11 MAC header',k:'wifi',f:[['Frame control','Data · QoS Data (2/8) · To DS = 1'],['Address 1 (receiver)',APM],['Address 2 (transmitter)',CLM],['Address 3 (destination)',BSSID],['Protected','0 · not encrypted, no keys yet']]};
 const dataDn={n:'802.11 MAC header',k:'wifi',f:[['Frame control','Data · QoS Data (2/8) · From DS = 1'],['Address 1 (receiver)',CLM],['Address 2 (transmitter)',APM],['Address 3 (source)',BSSID],['Protected','0 · not encrypted, no keys yet']]};
-const LLC={n:'LLC / SNAP header',k:'llc',f:[['DSAP / SSAP','0xAA / 0xAA'],['Control','0x03 (UI)'],['EtherType','0x888E (EAPOL)']]};
+const LLC={n:'LLC / SNAP header',k:'llc',f:[['DSAP / SSAP','0xAA / 0xAA'],['Control','0x03 (UI)'],['OUI','00-00-00'],['EtherType','0x888E (EAPOL)']]};
 const rsnIE={n:'RSN element',k:'rsn',f:[['Version','1'],['Group cipher','00-0F-AC:4 · CCMP-128'],['Pairwise cipher','00-0F-AC:4 · CCMP-128'],['AKM suite','00-0F-AC:1 · IEEE 802.1X'],['RSN capabilities','MFPC = 1 (PMF capable) · MFPR = 0']]};
 const EK=eapol('3 · EAPOL-Key');
 const keyL=f=>({n:'EAPOL-Key descriptor',k:'key',f:[['Descriptor type','2 · RSN']].concat(f)});
@@ -443,7 +447,7 @@ const W8={n:'TLS: client certificate and Finished',p:'Laptop ⇄ AP ⇄ ISE',lan
  tip:'The MSK never crosses the air. Both ends calculate it independently from the TLS handshake.'};
 const W9={n:'Access-Accept → EAP-Success',p:'ISE → AP → Laptop',lane:['A','W','L'],seg:[{k:DOWN12,c:C.ok},{k:['~WL'],c:C.ok,air:1}],
  d:'ISE sends Access-Accept with VLAN 30 and the keying material. The AP keeps the PMK and passes EAP-Success to the laptop.',
- st:[{t:'Across the network · RADIUS',L:[ipDn2,rad('2 · Access-Accept',56,accept2),eap('3 · Success',4)]},{t:'Over the air · AP → laptop',L:dnEAP(eap('3 · Success',4))}],
+ st:[{t:'Across the network · RADIUS',L:[ipDn2,rad('2 · Access-Accept',55,accept2),eap('3 · Success',4)]},{t:'Over the air · AP → laptop',L:dnEAP(eap('3 · Success',4))}],
  keys:{c:[['MSK'],['PMK',1]],a:[['PMK',1]],note:'The PMK is the first 32 bytes of the MSK. The laptop takes it from its own MSK. The AP receives the same value in MS-MPPE-Recv-Key, encrypted with the RADIUS shared secret.'},
  tip:'Authentication is finished, but the laptop still cannot send traffic. Wi-Fi needs encryption keys first, and creating them is the job of the 4-way handshake.'};
 const W10={n:'4-way handshake · Message 1',p:'AP → Laptop',lane:['W','L'],seg:[{k:['~WL'],c:C.key,air:1}],
@@ -543,15 +547,15 @@ const MAC_PR='A4:5E:60:C1:07:9F';
 const ipPub=(s,d)=>({n:'IPv4 (public Internet)',k:'ip',f:[['Source',s],['Destination',d],['Note','Crosses the public Internet · Dino World']]});
 const tcp=(flags,extra)=>({n:'TCP',k:'tcp',f:[['Source port','51820 (branch)'],['Destination port','2083 (RadSec)'],['Flags',flags]].concat(extra||[])});
 const tlsRec=recs=>({n:'TLS record (RadSec transport)',k:'radsec',f:recs});
-const radsecCH=tlsRec([['ClientHello','TLS 1.3 · client random · cipher suites incl. TLS_AES_256_GCM_SHA384']]);
-const radsecSH=tlsRec([['ServerHello + Certificate','radsec-proxy.corp.example + Corp Issuing CA 01'],['CertificateRequest','Proxy asks the branch for a client certificate'],['Finished','End of the server flight']]);
-const radsecCC=tlsRec([['Certificate','ap-branch-07.corp.example + Corp Issuing CA 01'],['CertificateVerify','Signed with the branch private key'],['Finished','Branch flight complete']]);
-const PROXY_CERT={t:'RadSec proxy certificate',f:[['Subject','CN=radsec-proxy.corp.example'],['SAN','DNS:radsec-proxy.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-02-10 → 2028-02-09'],['Key','ECDSA P-256 · SHA-256'],['EKU','Server Authentication (1.3.6.1.5.5.7.3.1)']],by:'Checked by the branch NAD',ok:['Chains to Corp Root CA on the branch device','Name matches the configured RadSec server','Inside its validity period']};
-const BAD_PROXY_CERT=Object.assign({},PROXY_CERT,{bad:1,ok:null,x:['Issuer chain ends at a CA the branch does not trust','Or the proxy name does not match the branch configuration']});
-const BRANCH_CERT={t:'Branch NAD certificate',f:[['Subject','CN=ap-branch-07.corp.example'],['SAN','DNS:ap-branch-07.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-02-10 → 2027-02-10'],['Key','ECDSA P-256 · SHA-256'],['EKU','Client Authentication (1.3.6.1.5.5.7.3.2)']],by:'Checked by the RadSec proxy',ok:['Chains to a CA the proxy trusts','Inside its validity period','CertificateVerify proves the branch holds the private key']};
+const radsecCH=tlsRec([['ClientHello','TLS 1.3 · client random · key share · cipher suites incl. TLS_AES_256_GCM_SHA384']]);
+const radsecSH=tlsRec([['ServerHello','Picks TLS_AES_256_GCM_SHA384 · server key share · everything after this is encrypted'],['EncryptedExtensions','Further handshake parameters'],['CertificateRequest','Proxy asks the branch for a client certificate'],['Certificate','radsec-proxy.corp.example + Corp Issuing CA 01'],['CertificateVerify','Signature over the handshake with the proxy private key'],['Finished','End of the server flight']]);
+const radsecCC=tlsRec([['Certificate','sw-branch-07.corp.example + Corp Issuing CA 01'],['CertificateVerify','Signed with the branch private key'],['Finished','Branch flight complete']]);
+const PROXY_CERT={t:'RadSec proxy certificate',f:[['Subject','CN=radsec-proxy.corp.example'],['SAN','DNS:radsec-proxy.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-02-10 → 2028-02-09'],['Key','ECDSA P-256 · SHA-256'],['EKU','Server Authentication (1.3.6.1.5.5.7.3.1)']],by:'Checked by the branch NAD',ok:['Chains to Corp Root CA on the branch device','Name matches the configured RadSec server','Inside its validity period','CertificateVerify proves the proxy holds the private key']};
+const BAD_PROXY_CERT=Object.assign({},PROXY_CERT,{bad:1,ok:null,x:['Issuer chain ends at a CA the branch does not trust']});
+const BRANCH_CERT={t:'Branch NAD certificate',f:[['Subject','CN=sw-branch-07.corp.example'],['SAN','DNS:sw-branch-07.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-02-10 → 2027-02-10'],['Key','ECDSA P-256 · SHA-256'],['EKU','Client Authentication (1.3.6.1.5.5.7.3.2)']],by:'Checked by the RadSec proxy',ok:['Chains to a CA the proxy trusts','Inside its validity period','CertificateVerify proves the branch holds the private key']};
 
 const ipInt=(s,d)=>({n:'IPv4 + UDP (inside the DC)',k:'ip',f:[['Source',s],['Destination',d],['Transport','UDP · port 1812']]});
-const radMAB=(code,id,avp)=>({n:'RADIUS',k:'rad',f:[['Code',code],['Identifier',String(id)],['Authenticator','16 bytes · MD5-based (the Blast-RADIUS weakness)']],avp:avp});
+const radMAB=(code,id,avp)=>({n:'RADIUS',k:'rad',f:[['Code',code],['Identifier',String(id)],['Authenticator',isReq(code)?AUTH_REQ:AUTH_RSP+' · this is what Blast-RADIUS forges']],avp:avp});
 const mabReq=[['User-Name','a4-5e-60-c1-07-9f (the printer MAC)'],['User-Password','a4-5e-60-c1-07-9f · MD5-hidden with the shared secret'],['Service-Type','Call-Check (10)'],['NAS-IP-Address','203.0.113.7'],['NAS-Port-Type','Ethernet (15)'],['Calling-Station-Id','A4-5E-60-C1-07-9F'],['Message-Authenticator','ABSENT · nothing protects the packet as a whole']];
 
 /* --- happy path: RadSec tunnel --- */
@@ -560,18 +564,18 @@ const R1={n:'TCP connection to the RadSec proxy',p:'Branch ⇄ Proxy',lane:['B',
  st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN',[['Sequence','0']])]},
      {t:'Across the Internet · proxy → branch',L:[ipPub('198.51.100.10','203.0.113.7'),tcp('SYN, ACK',[['Sequence','0'],['Acknowledgement','1']])]},
      {t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('ACK',[['Acknowledgement','1']])]}],
- tip:'RadSec is defined in RFC 6614 (being revised by the IETF RADEXT group to obsolete it). It uses TCP 2083. There is also a DTLS-over-UDP variant on the same port number.'};
+ tip:'RadSec is defined in RFC 6614 (being replaced by the IETF RADEXT draft draft-ietf-radext-radiusdtls-bis). It uses TCP 2083. There is also a DTLS-over-UDP variant on the same port number.'};
 const R2={n:'RadSec TLS handshake · proxy proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BI','IP'],c:C.radsec,sec:1},{k:['-IP','-BI'],c:C.radsec,sec:1}],
- d:'The branch sends ClientHello. The proxy presents its certificate and, because RadSec is mutual, asks the branch for one too. The branch validates the proxy first.',
+ d:'The branch sends ClientHello. The proxy presents its certificate, signs the handshake with its private key in CertificateVerify and, because RadSec is mutual, asks the branch for a certificate too. The branch validates the proxy first.',
  st:[{t:'RadSec TLS · branch → proxy',L:[radsecCH]},{t:'RadSec TLS · proxy → branch',L:[radsecSH]}],cert:PROXY_CERT,
- tip:'This is a second, outer TLS session, separate from any EAP-TLS inside. RadSec requires both ends to authenticate with certificates (TLS-PSK is the alternative). A rogue server on the path cannot complete this handshake.'};
+ tip:'This is a second, outer TLS session, separate from any EAP-TLS inside. RadSec requires both ends to authenticate, with certificates here or with TLS-PSK. In TLS 1.3 everything after ServerHello is encrypted, so neither certificate is visible on the Internet. A rogue server on the path cannot complete this handshake.'};
 const R3={n:'RadSec TLS handshake · branch proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BI','IP'],c:C.radsec,sec:1},{k:['-IP','-BI'],c:C.radsec,sec:1}],
  d:'The branch sends its own certificate and signs the handshake. The proxy validates it. Both ends are now authenticated and the tunnel is encrypted.',
- st:[{t:'RadSec TLS · branch → proxy',L:[radsecCC]},{t:'RadSec TLS · proxy → branch',L:[tlsRec([['Finished','Tunnel established · TLS 1.3 keys in use']])]}],cert:BRANCH_CERT,
- tip:'Mutual authentication is what makes RadSec safe across the Internet. The static shared secret still exists for compatibility, but RFC 6614 fixes it to the literal word "radsec", because the TLS tunnel now provides the real security.'};
+ st:[{t:'RadSec TLS · branch → proxy',L:[radsecCC]},{t:'RadSec TLS · proxy → branch',L:[tlsRec([['NewSessionTicket','Optional · lets the branch resume the tunnel later without a full handshake']])]}],cert:BRANCH_CERT,
+ tip:'In TLS 1.3 the proxy’s Finished was already in its first flight, so the handshake ends with the branch’s Finished. Mutual authentication is what makes RadSec safe across the Internet. The static shared secret still exists for compatibility, but RFC 6614 fixes it to the literal word "radsec", because the TLS tunnel now provides the real security.'};
 const R4={n:'Access-Request inside the tunnel',p:'Branch → Proxy',lane:['B','P'],sec:1,seg:[{k:['BI','IP'],c:C.radsec,sec:1}],
  d:'Now the ordinary RADIUS begins, but sealed inside the TLS tunnel. A user at the branch is doing EAP-TLS, and that whole exchange is relayed to the proxy.',
- st:[{t:'Encrypted inside RadSec',L:[tcp('ACK · application data'),tlsRec([['Application data','The RADIUS packet below, encrypted']]),rad('1 · Access-Request',71,[['User-Name',ID],['NAS-IP-Address','203.0.113.7'],['Called-Station-Id','...:CORP-BRANCH'],['EAP-Message','EAP-TLS, relayed from the branch user'],MA]),eap('2 · Response',1,'13 · EAP-TLS')]}],
+ st:[{t:'Encrypted inside RadSec',L:[tcp('ACK · application data'),tlsRec([['Application data','The RADIUS packet below, encrypted']]),rad('1 · Access-Request',71,[['User-Name',ID],['NAS-IP-Address','203.0.113.7'],['NAS-Port-Type','Ethernet (15)'],['EAP-Message','EAP-TLS, relayed from the branch user'],MA]),eap('2 · Response',2,'13 · EAP-TLS')]}],
  tip:'On the wire an eavesdropper sees only TLS records on TCP 2083. The RADIUS attributes, the usernames and the EAP conversation are all hidden. This is the whole point of RadSec.'};
 const R5={n:'Proxy relays plain RADIUS to ISE',p:'Proxy → ISE',lane:['P','A'],seg:[{k:['PF','FA'],c:C.radius}],
  d:'The proxy unwraps the tunnel and forwards the request to ISE as normal RADIUS over UDP. This hop stays inside the trusted data centre.',
@@ -586,14 +590,14 @@ const R7={n:'Accept returns through the tunnel',p:'Proxy → Branch',lane:['P','
  st:[{t:'Encrypted inside RadSec',L:[tlsRec([['Application data','The Access-Accept below, encrypted']]),rad('2 · Access-Accept',71,[['Tunnel-Private-Group-ID','40'],['EAP-Message','EAP-Success'],MA])]}],
  tip:'Because the response travels inside the tunnel, the Blast-RADIUS forgery is impossible here: an attacker cannot read or alter a TLS-protected packet.'};
 const R8={n:'Branch authorises the user',p:'At the branch',lane:['B'],seg:[],final:'ok',none:'The branch NAD applies the result locally and opens the port in VLAN 40.',
- d:'The branch access point puts the user on the right VLAN. A remote site has just authenticated safely against head-office ISE.',
+ d:'The branch switch puts the user on the right VLAN. A remote site has just authenticated safely against head-office ISE.',
  tip:'One proxy in the DMZ can serve many branches over RadSec, each with its own certificate, without exposing RADIUS to the Internet or opening a VPN for it.'};
 
 /* --- Blast-RADIUS: plain UDP RADIUS with MAB --- */
 const B1={n:'A printer joins · MAB over plain RADIUS',p:'Branch → ISE',lane:['B','A'],seg:[{k:['BI','IP','PF','FA'],c:C.radius}],
  d:'This time the branch has no RadSec. A printer that cannot do 802.1X is authorised by its MAC address (MAB). The branch sends a plain UDP Access-Request straight across the Internet.',
  st:[{t:'Across the Internet · plain UDP',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq)]}],
- tip:'MAB is not EAP, so RFC 2869 does not force a Message-Authenticator onto the packet. That missing attribute is exactly what Blast-RADIUS (CVE-2024-3596) needs.'};
+ tip:'MAB is not EAP, so RFC 3579 does not force a Message-Authenticator onto the packet. That missing attribute is exactly what Blast-RADIUS (CVE-2024-3596) needs.'};
 const B2={n:'On-path attacker injects collision data',p:'Dino World ✕',lane:['B','A'],seg:[{k:['BI'],c:C.forge},{k:['IP','PF','FA'],c:C.radius}],forge:'inject',
  d:'A raptor on the path lets the request through, but first slips crafted bytes into a Proxy-State attribute. It does not know the shared secret and does not need to.',
  st:[{t:'Tampered request · forwarded to ISE',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq.concat([['Proxy-State','Attacker-chosen bytes · an MD5 chosen-prefix collision']]))]}],
@@ -611,13 +615,13 @@ const B4={n:'Reject forged into Accept',p:'Attacker → Branch',lane:['A','B'],s
 const C3={n:'Branch rejects the proxy certificate',p:'Branch → Proxy',lane:['B','P'],seg:[{k:['BI','IP'],c:C.fail,sec:1}],final:'fail',
  d:'The branch cannot validate the proxy’s certificate, so it aborts the TLS handshake with a fatal alert. The tunnel never forms and no RADIUS is ever sent.',
  st:[{t:'RadSec TLS · branch → proxy',L:[tcp('ACK'),tlsRec([['Alert','Fatal · unknown_ca (48)']])]}],cert:BAD_PROXY_CERT,
- tip:'This protects the branch from connecting to a rogue proxy. Fix it by trusting the correct issuing CA on the branch and matching the proxy name. The same would happen in reverse if the proxy did not trust the branch certificate.'};
+ tip:'This protects the branch from connecting to a rogue proxy. Fix it by trusting the correct issuing CA on the branch. The same would happen in reverse if the proxy did not trust the branch certificate.'};
 
 /* --- firewall blocks 2083 --- */
 const F13a={n:'TCP SYN dropped at the DMZ edge',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BI'],c:C.tcp,end:'drop'}],
  d:'The branch tries to open the RadSec connection, but the DMZ firewall has no rule for inbound TCP 2083 and drops the SYN.',
  st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN',[['Sequence','0']])]}],
- tip:'Unlike UDP RADIUS, which simply times out, a blocked TCP connection fails to establish. On the branch the symptom is "RADIUS server unreachable" even though ISE is healthy.'};
+ tip:'The firewall drops the SYN silently, so the branch just waits, much as it would with UDP. The difference is where it fails: no TCP connection is ever established, so no RADIUS is sent at all. Only a firewall that answers with a TCP reset makes the failure immediate.'};
 const F13b={n:'SYN retransmitted, dropped again',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BI'],c:C.tcp,end:'drop'}],
  d:'TCP retransmits the SYN after its timeout. The firewall drops it again.',
  st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN (retransmission)',[['Sequence','0']])]}],
@@ -634,23 +638,23 @@ const SCEN13=[
 ];
 
 const INFO13={
- B:{t:'Branch NAD · AP-BRANCH-07',sub:'A remote site across the Internet',facts:['A small office with no direct link to head office, only an Internet connection.','Acts as a RADIUS client, but sends RadSec (RADIUS over TLS) to the proxy instead of plain UDP.','Holds its own certificate, CN=ap-branch-07, so the proxy can authenticate it.','Without RadSec it would have to expose RADIUS to the Internet or run a full VPN just for authentication.'],
-  code:'<span class="cm"># RadSec client on the branch NAD</span>\nradius server HQ-RADSEC\n address ipv4 198.51.100.10 tls port 2083\n tls connectiontimeout 30\n tls trustpoint client BRANCH-ID\n tls trustpoint server CORP-ROOT\n automate-tester username probe-radsec'},
- P:{t:'RadSec proxy · radsec-proxy-01',sub:'Terminates RadSec in the DMZ',facts:['Listens on TCP 2083, in the DMZ, reachable from the Internet.','A RADIUS server to the branches, and a RADIUS client to ISE.','Terminates the TLS tunnel, then forwards plain RADIUS to ISE inside the DC.','Common software: radsecproxy, or a feature of the RADIUS server itself.','ISE trusts one device, the proxy, instead of every branch.'],
-  code:'<span class="cm"># radsecproxy.conf (abridged)</span>\nlisten  radsec  *:2083\ntls corp { CACertificateFile /etc/pki/corp-root.pem\n           certificateFile   /etc/pki/radsec-proxy.pem\n           certificateKeyFile /etc/pki/radsec-proxy.key }\nclient branches { type tls  tls corp\n                  matchCertificateAttribute CN:/.*\\.corp\\.example/ }\nserver ise { type udp  host 10.50.1.10  secret <...> }'},
+ B:{t:'Branch NAD · SW-BRANCH-07',sub:'A remote site across the Internet',facts:['A small office with no direct link to head office, only an Internet connection.','Its access switch acts as a RADIUS client, but sends RadSec (RADIUS over TLS) to the proxy instead of plain UDP.','Holds its own certificate, CN=sw-branch-07, so the proxy can authenticate it.','Without RadSec it would have to expose RADIUS to the Internet or run a full VPN just for authentication.'],
+  code:'<span class="cm"># RadSec client on the branch switch</span>\nradius server HQ-RADSEC\n address ipv4 198.51.100.10\n key radsec  <span class="cm"># fixed value for RADIUS over TLS</span>\n tls port 2083\n tls connectiontimeout 30\n tls trustpoint client BRANCH-ID\n tls trustpoint server CORP-ROOT'},
+ P:{t:'RadSec proxy · radsec-proxy-01',sub:'Terminates RadSec in the DMZ',facts:['Listens on TCP 2083, in the DMZ, reachable from the Internet.','A RADIUS server to the branches, and a RADIUS client to ISE.','Terminates the TLS tunnel, then forwards plain RADIUS to ISE inside the DC from its inside address, 10.60.1.10.','Common software: radsecproxy, or a feature of the RADIUS server itself.','ISE trusts one device, the proxy, instead of every branch.'],
+  code:'<span class="cm"># radsecproxy.conf (abridged)</span>\nListenTLS *:2083\ntls corp {\n    CACertificateFile  /etc/pki/corp-root.pem\n    CertificateFile    /etc/pki/radsec-proxy.pem\n    CertificateKeyFile /etc/pki/radsec-proxy.key\n}\nclient branches {\n    host 203.0.113.0/24\n    type tls\n    tls  corp\n    matchCertificateAttribute SubjectAltName:DNS:/\\.corp\\.example$/\n}\nserver ise {\n    host   10.50.1.10\n    type   udp\n    secret <span class="cm">&lt;shared secret&gt;</span>\n}\nrealm * {  <span class="cm"># send every request to ISE</span>\n    server ise\n}'},
  I:{t:'Internet · Dino World',sub:'The untrusted path',facts:['Everything between the branch and the DMZ. Assume it is hostile.','Plain UDP RADIUS here is exposed to Blast-RADIUS (CVE-2024-3596): an on-path attacker can forge an Access-Accept from an Access-Reject using an MD5 collision.','RadSec removes the danger by wrapping RADIUS in mutually authenticated TLS.','The dinosaurs are a reminder: do not send anything across here in the clear.'],code:''},
- F:{t:'Firewall · DMZ edge',sub:'Controls what reaches the proxy',facts:['Permits inbound TCP 2083 from branch sites to the RadSec proxy, and the replies.','A blocked port here fails the TCP connection outright, rather than timing out like UDP.','The proxy sits in the DMZ so that the Internet never reaches ISE directly.'],
-  code:'rule src             dst             svc       action\n30   203.0.113.0/24  198.51.100.10   tcp/2083  permit  <span class="cm"># RadSec in</span>\n31   198.51.100.10   10.50.1.10      udp/1812  permit  <span class="cm"># proxy → ISE</span>\n99   any             any             any       deny log'},
+ F:{t:'Firewall · DMZ edge',sub:'Controls what reaches the proxy',facts:['Permits inbound TCP 2083 from branch sites to the RadSec proxy, and the replies.','A blocked port here stops the TCP connection from ever forming, so no RADIUS is sent. With a silent drop it still ends in a timeout.','The proxy reaches ISE from its inside address, 10.60.1.10, so the DC rules use that address.','The proxy sits in the DMZ so that the Internet never reaches ISE directly.'],
+  code:'rule src             dst             svc       action\n30   203.0.113.0/24  198.51.100.10   tcp/2083  permit  <span class="cm"># RadSec in</span>\n31   10.60.1.10      10.50.1.10      udp/1812  permit  <span class="cm"># proxy → ISE auth</span>\n32   10.60.1.10      10.50.1.10      udp/1813  permit  <span class="cm"># proxy → ISE accounting</span>\n99   any             any             any       deny log'},
  A:{t:'Authentication server · ISE',sub:'DC ISE World, unchanged',facts:['Sees one network device, the RadSec proxy, not the individual branches.','Does ordinary RADIUS over UDP with the proxy, inside the trusted DC.','For the Blast-RADIUS defence, ISE can require Message-Authenticator on every request and response.'],
   code:'Network device : radsec-proxy-01   10.60.1.10   secret ********\nPolicy set     : Branch_RadSec\n Authentication: EAP-TLS → Certificate profile\n Authorization : Corp_Branch_VLAN40\nHardening      : Require Message-Authenticator = on'}
 };
 
 const QUIZ13=[
  {q:'What does RadSec use to protect RADIUS across the Internet?',o:['A longer shared secret','Mutually authenticated TLS on TCP 2083','IPsec on UDP 1812'],a:1,e:'RadSec wraps RADIUS in TLS on TCP 2083, with both ends authenticating by certificate. The shared secret is fixed to the word "radsec".'},
- {q:'Why is the EAP-TLS laptop safe from Blast-RADIUS, but the MAB printer is not?',o:['EAP-TLS uses a stronger cipher','EAP packets must carry a Message-Authenticator the attacker cannot forge','The printer uses a weaker password'],a:1,e:'RFC 2869 requires a Message-Authenticator (an HMAC over the whole packet) with EAP. MAB is not EAP, so by default nothing protects the packet as a whole.'},
+ {q:'Why is the EAP-TLS laptop safe from Blast-RADIUS, but the MAB printer is not?',o:['EAP-TLS uses a stronger cipher','EAP packets must carry a Message-Authenticator the attacker cannot forge','The printer uses a weaker password'],a:1,e:'RFC 3579 requires a Message-Authenticator (an HMAC over the whole packet) in every packet that carries EAP. MAB is not EAP, so by default nothing protects the packet as a whole.'},
  {q:'In the Blast-RADIUS attack, what does the on-path attacker actually forge?',o:['The shared secret','An Access-Reject into an Access-Accept','The client certificate'],a:1,e:'Using an MD5 chosen-prefix collision seeded through Proxy-State, the attacker turns the server’s Access-Reject into a validly-authenticated Access-Accept, without knowing the secret.'},
  {q:'Where does the RadSec proxy forward requests after the tunnel?',o:['Back across the Internet','As plain RADIUS to ISE inside the data centre','Directly to the branch'],a:1,e:'The proxy terminates the tunnel and sends ordinary UDP RADIUS to ISE on the trusted internal network.'},
- {q:'How does a blocked RadSec port look different from a blocked UDP RADIUS port?',o:['They look identical','TCP fails to connect, rather than silently timing out','RadSec retries forever'],a:1,e:'RadSec runs on TCP, so a blocked 2083 fails the connection handshake. UDP RADIUS has no handshake and simply times out.'},
+ {q:'How does a blocked RadSec port look different from a blocked UDP RADIUS port?',o:['They look identical','No TCP connection is ever established, so no RADIUS is sent at all','RadSec retries forever'],a:1,e:'With a silent drop both end in a timeout. With UDP, requests are sent and never answered. With RadSec, the TCP handshake never completes, so the branch never gets as far as sending RADIUS.'},
  {q:'Besides RadSec, what is the recommended short-term fix for Blast-RADIUS?',o:['Require Message-Authenticator on every RADIUS packet','Use a 64-character shared secret','Shorten the RADIUS timeout'],a:0,e:'Requiring Message-Authenticator on all requests and responses blocks the forgery. Stronger secrets and shorter timeouts do not help.'}
 ];
 WORLDS['1-3']={scen:SCEN13,quiz:QUIZ13,lanes:['Branch','Proxy','ISE'],lanex:{B:1/6,P:3/6,A:5/6},client:'B',auth:'B',celeb:'BRANCH ONLINE!',celebDy:46,waitDx:0,waitDy:26,
@@ -863,7 +867,7 @@ function smallPad(x,y){r(x-7,y-2,14,5,D);r(x-6,y-1,12,3,'#F8C830');r(x-4,y-1,5,1
 function devices(){
  const w12=WORLD==='1-2',st=authed?'ok':(failed?'fail':'wait');
  if(unlocked)goldDots(PATHS.NW);if(unlocked3)w13roads();
- for(const k in NODES){if(k=='C'||k=='L'||k=='B'||k=='P')continue;const[x,y]=NODES[k];pad(x,y,(k=='W'&&!unlocked)||k=='I');}
+ for(const k in NODES){if(k=='C'||k=='L'||k=='B'||k=='P')continue;const[x,y]=NODES[k];pad(x,y,(k=='W'&&!unlocked)||(k=='I'&&!unlocked3));}
  let[x,y]=NODES.S;bigLaptop(x,y,WORLD==='1-1'?st:'idle');
  if(unlocked){[x,y]=NODES.L;smallPad(x,y);smallLaptop(x,y,w12?st:'idle');}
  [x,y]=NODES.N;ob(x-13,y-18,26,5,'#E0E0E8');r(x-12,y-17,24,1,'#F8F8F8');ob(x-13,y-13,26,9,'#8080A0');r(x-13,y-13,26,1,'#A0A0B8');
@@ -880,7 +884,7 @@ function devices(){
  if(unlocked)r(x+3,y-7,3,1,WORLD==='1-2'?(authed?'#30D058':(failed?'#F83030':(clk%30<15?'#F8B800':'#604000'))):'#686878');
  [x,y]=NODES.I;for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){const d2=dx*dx+dy*dy;if(d2<=64)r(x+dx,y-12+dy,1,1,d2>49?D:((dx==0||dy==0||Math.abs(d2-20)<4)?'#686878':'#A8A8B8'));}
  if(unlocked3){branchIsland();radsecProxy();}
- for(const k of['W','I','C']){if(k=='W'&&unlocked)continue;[x,y]=NODES[k];if(k=='C')y+=cloudBob();ob(x+6,y-8,7,6,'#D8B030');r(x+7,y-11,5,1,D);r(x+7,y-11,1,3,D);r(x+11,y-11,1,3,D);r(x+9,y-6,1,2,D);}
+ for(const k of['W','I','C']){if(k=='W'&&unlocked)continue;if(k=='I'&&unlocked3)continue;[x,y]=NODES[k];if(k=='C')y+=cloudBob();ob(x+6,y-8,7,6,'#D8B030');r(x+7,y-11,5,1,D);r(x+7,y-11,1,3,D);r(x+11,y-11,1,3,D);r(x+9,y-6,1,2,D);}
 }
 const NODEBOX={S:[-11,-25,22,30],N:[-14,-20,28,25],R:[-11,-22,22,27],F:[-14,-30,28,35],A:[-11,-41,22,46],W:[-11,-21,26,26],I:[-11,-21,26,26],C:[-24,-14,48,26],L:[-9,-17,18,22],B:[-17,-14,34,20],P:[-11,-17,22,21]};
 function selection(){if(sel.kind!=='node')return;const k=sel.id,[x,y]=NODES[k],bx=NODEBOX[k],o=(clk>>3)%2,x0=x+bx[0]-o,y0=y+bx[1]-o,x1=x+bx[0]+bx[2]+o,y1=y+bx[1]+bx[3]+o,c='#F8D830';
@@ -978,7 +982,7 @@ function tick(){
 }
 function goStep(i,auto){si=Math.max(0,Math.min(steps.length-1,i));gi=0;hold=0;finished=false;authed=false;failed=false;effects.length=0;celebrate=0;celebText=0;rockets.length=0;sparks.length=0;flashes.length=0;
  if(!steps[si].seg.length&&steps[si].final)completeStep();setSeg();if(steps[si].forge)doForge(steps[si].forge);if(!auto)sel={kind:'step'};ui();}
-function setScenario(id){scen=SCEN.find(s=>s.id===id);steps=scen.steps;play=true;sel={kind:'step'};goStep(0);buildLadder();ui();}
+function setScenario(id){scen=SCEN.find(s=>s.id===id);steps=scen.steps;play=!reduce;sel={kind:'step'};goStep(0);buildLadder();ui();}
 
 /* ---------------- camera ---------------- */
 let cam={x:170,y:100,z:1},camT={x:170,y:100,z:1},follow=false;
@@ -1042,38 +1046,18 @@ let score=0,answered=0;
 function buildQuiz(){const el=document.getElementById('quiz');el.innerHTML=QUIZ.map((q,i)=>'<div class="win q" data-q="'+i+'"><div class="qn">Question '+(i+1)+'</div><h3>'+esc(q.q)+'</h3><div class="opts">'+q.o.map((o,j)=>'<button data-j="'+j+'">'+esc(o)+'</button>').join('')+'</div><p class="fb" hidden></p></div>').join('');
  el.querySelectorAll('.q').forEach(card=>{const q=QUIZ[+card.dataset.q];card.querySelectorAll('.opts button').forEach(bn=>bn.onclick=()=>{if(card.dataset.done)return;card.dataset.done=1;const j=+bn.dataset.j,ok=j===q.a;bn.classList.add(ok?'right':'wrong');if(!ok)card.querySelector('[data-j="'+q.a+'"]').classList.add('right');const fb=card.querySelector('.fb');fb.hidden=false;fb.textContent=(ok?'Correct. ':'Not quite. ')+q.e;answered++;if(ok)score++;document.getElementById('score').textContent='Score '+score+' / '+answered;});});}
 
-/* ---------------- worlds, unlock, Wi-Fi helpers ---------------- */
+/* ---------------- Wi-Fi helpers and episode list ---------------- */
 function airFx(x,y){for(let k=0;k<2;k++){const rr=4+((clk*0.3+k*5)%10),al=Math.max(0,0.75-rr/16);g.fillStyle='rgba(200,245,255,'+al.toFixed(2)+')';for(let a=0;a<6.28;a+=0.45)g.fillRect(Math.round(x+Math.cos(a)*rr)*P,Math.round(y-12+Math.sin(a)*rr*0.75)*P,P,P);}}
-function nodeInfo(k){if(WORLD==='1-2'&&INFO12[k])return INFO12[k];if(unlocked&&(k==='W'||k==='L'))return INFO12[k];return NODEINFO[k];}
 function keysHTML(k){const ch=a=>a.length?a.map(c=>'<span class="chip'+(c[1]?' new':'')+'">'+esc(c[0])+'</span>').join(''):'<span class="chip none">No keys yet</span>';
  return '<div class="keys"><div class="lh">Keys held · highlighted keys are new</div><div class="kc"><div><div class="kh">Laptop</div><div class="chips">'+ch(k.c)+'</div></div><div><div class="kh">AP</div><div class="chips">'+ch(k.a)+'</div></div></div>'+(k.note?'<p class="kn">'+esc(k.note)+'</p>':'')+'</div>';}
 function renderHeader(){const w=WORLDS[WORLD];document.getElementById('eyebrow').textContent=w.eyebrow;document.getElementById('intro').textContent=w.intro;
  document.getElementById('legend').innerHTML=w.legend.map(l=>'<span><i style="background:'+l[0]+'"></i>'+esc(l[1])+'</span>').join('');}
-function renderWorlds(){const el=document.getElementById('worlds');el.innerHTML=[['1-1','World 1-1 · Wired'],['1-2','World 1-2 · Wi-Fi']].map(([id,n])=>{const lk=id==='1-2'&&!unlocked;return '<button data-w="'+id+'" class="'+(lk?'locked':'')+'" aria-pressed="'+(WORLD===id)+'">'+n+(lk?' <span class="lk">Locked</span>':'')+'</button>';}).join('');
- el.querySelectorAll('button').forEach(bn=>bn.onclick=()=>setWorld(bn.dataset.w));}
 const EPS=[
  {id:'1-1',t:'1-1 · Wired 802.1X with EAP-TLS',z:'Grasslands → Router lake → Firewall → DC ISE World',p:'EAPOL, RADIUS encapsulation, the mutual TLS handshake, certificate checks, VLAN assignment and four ways it fails.'},
  {id:'1-2',t:'1-2 · Wi-Fi: EAP-TLS and the 4-way handshake',z:'Desert RF World',p:'Beacons and association, EAP-TLS over the air, how the Access-Accept hands the AP its PMK, and the 4-way handshake that creates the encryption keys.',lock:'Finish any World 1-1 journey to unlock.'},
  {id:'1-3',t:'1-3 · RadSec across the Internet',z:'Dino World DMZ',p:'A mutually authenticated TLS tunnel on TCP 2083 to a DMZ proxy, RADIUS carried safely inside it, and the Blast-RADIUS forgery (CVE-2024-3596) that plain UDP RADIUS allows.',lock:'Finish any World 1-2 journey to unlock.'},
  {t:'1-4 · ??? from the lake',z:'Router lake',p:'Something surfaces mid-session and changes a port’s access without the user reconnecting. Hint: UDP 1700 and 3799.'},
  {t:'1-5 · Cloud Access World',z:'The cloud over the northern sea',p:'Coming soon. Authentication and access from the cloud side of the network.'}];
-function renderEpisodes(){const el=document.getElementById('eps');el.innerHTML=EPS.map(e=>{const av=!!e.id&&(e.id==='1-1'||unlocked),now=e.id===WORLD,cls=now?'now':(av?'avail':'locked'),tag=now?'Now playing':(av?'Unlocked':'Locked');
-  return '<div class="win ep '+cls+'"><span class="tag">'+tag+'</span><h3>'+esc(e.t)+'</h3><p class="zone">'+esc(e.z)+'</p><p>'+esc(e.p)+'</p>'+(av&&!now?'<button class="play" data-w="'+e.id+'">Play World '+e.id+' ▶</button>':'')+(e.lock&&!av?'<p class="req">'+esc(e.lock)+'</p>':'')+'</div>';}).join('');
- el.querySelectorAll('.play').forEach(bn=>bn.onclick=()=>setWorld(bn.dataset.w,true));}
-function showUnlock(kind){const el=document.getElementById('unlock');
- if(kind==='new'){el.className='unlock';el.innerHTML='<p><b>World 1-2 unlocked</b>Wi-Fi in Desert RF World: beacons, EAP-TLS over the air and the 4-way handshake.</p><button id="go12">Play World 1-2 ▶</button>';el.hidden=false;document.getElementById('go12').onclick=()=>setWorld('1-2');}
- else if(kind==='locked'){el.className='unlock lockedmsg';el.innerHTML='<p><b>World 1-2 is locked</b>Finish any journey in World 1-1 to unlock it. Stepping through to the end with Next counts too.</p>';el.hidden=false;}
- else el.hidden=true;}
-function setWorld(id,scroll){if(id==='1-2'&&!unlocked){showUnlock('locked');return;}
- WORLD=id;const w=WORLDS[id];SCEN=w.scen;QUIZ=w.quiz;LANEX=w.lanex;scen=SCEN[0];steps=scen.steps;play=!reduce;sel={kind:'step'};follow=false;setFollow();camT={x:170,y:100,z:1};
- score=0;answered=0;document.getElementById('score').textContent='';stormT=0;
- showUnlock(null);renderHeader();renderWorlds();renderEpisodes();buildScen();buildLadder();buildQuiz();goStep(0);
- if(scroll)document.getElementById('map').scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});}
-function onFinish(){if(WORLD==='1-1'&&!unlocked)doUnlock();}
-function doUnlock(){unlocked=true;try{localStorage.setItem('netsecworld.w12','1');}catch(e){}unlockFx=560;burst(56,62,'ring');burst(48,56,'peony');renderWorlds();renderEpisodes();showUnlock('new');}
-function drawUnlock(){if(unlockFx<=0)return;unlockFx--;if(unlockFx>160&&unlockFx%55==0)burst(30+Math.random()*52,50+Math.random()*18,pick(['ring','peony','crossette']));
- const[x,y]=NODES.W,t='WORLD 1-2 UNLOCKED!';g.font='10px "Press Start 2P"';const w=g.measureText(t).width+14,px=Math.max(6,x*P-w/2),py=(y-46)*P+((unlockFx>>3)%2);
- g.fillStyle='#181848';g.fillRect(px-3,py-3,w+6,24);g.fillStyle=FWC2[(clk>>3)%FWC2.length];g.fillRect(px,py,w,18);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,px+w/2,py+14);}
 
 /* ---------------- World 1-3 drawing ---------------- */
 const BRANCH_ISL=[];(()=>{const ins=(x,y)=>((x)/16)**2+((y)/8)**2<=1;for(let y=-9;y<=9;y++)for(let x=-17;x<=17;x++){if(!ins(x,y))continue;const edge=!ins(x+1,y)||!ins(x-1,y)||!ins(x,y+1)||!ins(x,y+2);let c;if(y>5)c='#C8A05C';else if(edge)c='#C8A05C';else c=((x*3+y*5)%11==0)?'#30A030':'#42B342';if(y<=5&&(x< -12))c='#E0C080';BRANCH_ISL.push([x,y,c]);}})();
@@ -1098,7 +1082,7 @@ function drawForge(){if(forgeFx<=0)return;forgeFx--;const[ix,iy]=[278,172];
  g.fillStyle='#181848';g.fillText(t,ix*P+1,ty+1);g.fillStyle=forgeKind==='accept'?'#F85050':'#F8D830';g.fillText(t,ix*P,ty);}
 function lockBadge(x,y){x=Math.round(x);y=Math.round(y)-22-(Math.floor(clk/8)%2);r(x-2,y-1,5,4,'#F8D830');r(x-2,y-1,5,1,'#C89810');r(x-1,y-4,1,1,D);r(x-2,y-3,1,2,D);r(x+2,y-3,1,2,D);r(x,y+1,1,1,D);}
 
-/* ---------------- generalised unlock chain ---------------- */
+/* ---------------- unlock chain ---------------- */
 function unlockState(id){return id==='1-2'?unlocked:(id==='1-3'?unlocked3:true);}
 function onFinish(){if(WORLD==='1-1'&&!unlocked)doUnlock('1-2');else if(WORLD==='1-2'&&!unlocked3)doUnlock('1-3');}
 function doUnlock(id){if(id==='1-2'){unlocked=true;try{localStorage.setItem('netsecworld.w12','1');}catch(e){}unlockFx=560;unlockWorld='1-2';burst(56,62,'ring');burst(48,56,'peony');}
@@ -1108,8 +1092,8 @@ function drawUnlock(){if(unlockFx<=0)return;unlockFx--;const w=unlockWorld;const
  if(unlockFx>160&&unlockFx%55==0)burst(cx-15+Math.random()*52,(w==='1-2'?50:108)+Math.random()*18,pick(['ring','peony','crossette']));
  const[x,y]=w==='1-2'?NODES.W:NODES.P,t='WORLD '+w+' UNLOCKED!';g.font='10px "Press Start 2P"';const ww=g.measureText(t).width+14,px=Math.min(Math.max(6,x*P-ww/2),mc.width-ww-6),py=(y-(w==='1-2'?46:22))*P+((unlockFx>>3)%2);
  g.fillStyle='#181848';g.fillRect(px-3,py-3,ww+6,24);g.fillStyle=FWC2[(clk>>3)%FWC2.length];g.fillRect(px,py,ww,18);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,px+ww/2,py+14);}
-/* overrides for 3 worlds */
-function nodeInfo(k){if(WORLD==='1-3'&&INFO13[k])return INFO13[k];if(unlocked3&&(k==='B'||k==='P'))return INFO13[k];if(WORLD==='1-2'&&INFO12[k])return INFO12[k];if(unlocked&&(k==='W'||k==='L'))return INFO12[k];return NODEINFO[k]||INFO13[k]||INFO12[k]||{t:k,sub:'',facts:[],code:''};}
+/* ---------------- world selection, device panels and episodes ---------------- */
+function nodeInfo(k){if(WORLD==='1-3'&&INFO13[k])return INFO13[k];if(unlocked3&&(k==='B'||k==='P'||k==='I'))return INFO13[k];if(WORLD==='1-2'&&INFO12[k])return INFO12[k];if(unlocked&&(k==='W'||k==='L'))return INFO12[k];return NODEINFO[k]||INFO13[k]||INFO12[k]||{t:k,sub:'',facts:[],code:''};}
 function renderWorlds(){const el=document.getElementById('worlds');el.innerHTML=[['1-1','1-1 · Wired'],['1-2','1-2 · Wi-Fi'],['1-3','1-3 · RadSec']].map(([id,n])=>{const lk=!unlockState(id);return '<button data-w="'+id+'" class="'+(lk?'locked':'')+'" aria-pressed="'+(WORLD===id)+'">'+n+(lk?' <span class="lk">Locked</span>':'')+'</button>';}).join('');
  el.querySelectorAll('button').forEach(bn=>bn.onclick=()=>setWorld(bn.dataset.w));}
 function renderEpisodes(){const el=document.getElementById('eps');el.innerHTML=EPS.map(e=>{const av=!!e.id&&unlockState(e.id),now=e.id===WORLD,cls=now?'now':(av?'avail':'locked'),tag=now?'Now playing':(av?'Unlocked':'Locked');
