@@ -555,21 +555,21 @@ const radMAB=(code,id,avp)=>({n:'RADIUS',k:'rad',f:[['Code',code],['Identifier',
 const mabReq=[['User-Name','a4-5e-60-c1-07-9f (the printer MAC)'],['User-Password','a4-5e-60-c1-07-9f · MD5-hidden with the shared secret'],['Service-Type','Call-Check (10)'],['NAS-IP-Address','203.0.113.7'],['NAS-Port-Type','Ethernet (15)'],['Calling-Station-Id','A4-5E-60-C1-07-9F'],['Message-Authenticator','ABSENT · nothing protects the packet as a whole']];
 
 /* --- happy path: RadSec tunnel --- */
-const R1={n:'TCP connection to the RadSec proxy',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,seg:[{k:['BP'],c:C.tcp},{k:['-BP'],c:C.tcp}],
+const R1={n:'TCP connection to the RadSec proxy',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,seg:[{k:['BI','IP'],c:C.tcp},{k:['-IP','-BI'],c:C.tcp}],
  d:'The branch opens a TCP connection to the proxy on port 2083. Unlike UDP RADIUS, RadSec rides on a reliable, ordered TCP stream.',
  st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN',[['Sequence','0']])]},
      {t:'Across the Internet · proxy → branch',L:[ipPub('198.51.100.10','203.0.113.7'),tcp('SYN, ACK',[['Sequence','0'],['Acknowledgement','1']])]},
      {t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('ACK',[['Acknowledgement','1']])]}],
  tip:'RadSec is defined in RFC 6614 (being revised by the IETF RADEXT group to obsolete it). It uses TCP 2083. There is also a DTLS-over-UDP variant on the same port number.'};
-const R2={n:'RadSec TLS handshake · proxy proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BP'],c:C.radsec,sec:1},{k:['-BP'],c:C.radsec,sec:1}],
+const R2={n:'RadSec TLS handshake · proxy proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BI','IP'],c:C.radsec,sec:1},{k:['-IP','-BI'],c:C.radsec,sec:1}],
  d:'The branch sends ClientHello. The proxy presents its certificate and, because RadSec is mutual, asks the branch for one too. The branch validates the proxy first.',
  st:[{t:'RadSec TLS · branch → proxy',L:[radsecCH]},{t:'RadSec TLS · proxy → branch',L:[radsecSH]}],cert:PROXY_CERT,
  tip:'This is a second, outer TLS session, separate from any EAP-TLS inside. RadSec requires both ends to authenticate with certificates (TLS-PSK is the alternative). A rogue server on the path cannot complete this handshake.'};
-const R3={n:'RadSec TLS handshake · branch proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BP'],c:C.radsec,sec:1},{k:['-BP'],c:C.radsec,sec:1}],
+const R3={n:'RadSec TLS handshake · branch proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BI','IP'],c:C.radsec,sec:1},{k:['-IP','-BI'],c:C.radsec,sec:1}],
  d:'The branch sends its own certificate and signs the handshake. The proxy validates it. Both ends are now authenticated and the tunnel is encrypted.',
  st:[{t:'RadSec TLS · branch → proxy',L:[radsecCC]},{t:'RadSec TLS · proxy → branch',L:[tlsRec([['Finished','Tunnel established · TLS 1.3 keys in use']])]}],cert:BRANCH_CERT,
  tip:'Mutual authentication is what makes RadSec safe across the Internet. The static shared secret still exists for compatibility, but RFC 6614 fixes it to the literal word "radsec", because the TLS tunnel now provides the real security.'};
-const R4={n:'Access-Request inside the tunnel',p:'Branch → Proxy',lane:['B','P'],sec:1,seg:[{k:['BP'],c:C.radsec,sec:1}],
+const R4={n:'Access-Request inside the tunnel',p:'Branch → Proxy',lane:['B','P'],sec:1,seg:[{k:['BI','IP'],c:C.radsec,sec:1}],
  d:'Now the ordinary RADIUS begins, but sealed inside the TLS tunnel. A user at the branch is doing EAP-TLS, and that whole exchange is relayed to the proxy.',
  st:[{t:'Encrypted inside RadSec',L:[tcp('ACK · application data'),tlsRec([['Application data','The RADIUS packet below, encrypted']]),rad('1 · Access-Request',71,[['User-Name',ID],['NAS-IP-Address','203.0.113.7'],['Called-Station-Id','...:CORP-BRANCH'],['EAP-Message','EAP-TLS, relayed from the branch user'],MA]),eap('2 · Response',1,'13 · EAP-TLS')]}],
  tip:'On the wire an eavesdropper sees only TLS records on TCP 2083. The RADIUS attributes, the usernames and the EAP conversation are all hidden. This is the whole point of RadSec.'};
@@ -581,7 +581,7 @@ const R6={n:'ISE Access-Accept',p:'ISE → Proxy',lane:['A','P'],seg:[{k:['-FA',
  d:'ISE authorises the user and replies to the proxy with Access-Accept over plain RADIUS, inside the DC.',
  st:[{t:'Inside the DC · ISE → proxy',L:[ipInt('10.50.1.10','10.60.1.10'),rad('2 · Access-Accept',44,[['Tunnel-Private-Group-ID','40'],['EAP-Message','EAP-Success'],MA])]}],
  tip:'The proxy is a RADIUS server to the branch and a RADIUS client to ISE. ISE only needs to trust the proxy as a single network device, not every remote site.'};
-const R7={n:'Accept returns through the tunnel',p:'Proxy → Branch',lane:['P','B'],sec:1,seg:[{k:['-BP'],c:C.ok,sec:1}],
+const R7={n:'Accept returns through the tunnel',p:'Proxy → Branch',lane:['P','B'],sec:1,seg:[{k:['-IP','-BI'],c:C.ok,sec:1}],
  d:'The proxy re-wraps the Access-Accept in the TLS tunnel and sends it back to the branch across the Internet.',
  st:[{t:'Encrypted inside RadSec',L:[tlsRec([['Application data','The Access-Accept below, encrypted']]),rad('2 · Access-Accept',71,[['Tunnel-Private-Group-ID','40'],['EAP-Message','EAP-Success'],MA])]}],
  tip:'Because the response travels inside the tunnel, the Blast-RADIUS forgery is impossible here: an attacker cannot read or alter a TLS-protected packet.'};
@@ -590,35 +590,35 @@ const R8={n:'Branch authorises the user',p:'At the branch',lane:['B'],seg:[],fin
  tip:'One proxy in the DMZ can serve many branches over RadSec, each with its own certificate, without exposing RADIUS to the Internet or opening a VPN for it.'};
 
 /* --- Blast-RADIUS: plain UDP RADIUS with MAB --- */
-const B1={n:'A printer joins · MAB over plain RADIUS',p:'Branch → ISE',lane:['B','A'],seg:[{k:['BX','XA','FA'],c:C.radius}],
+const B1={n:'A printer joins · MAB over plain RADIUS',p:'Branch → ISE',lane:['B','A'],seg:[{k:['BI','IP','PF','FA'],c:C.radius}],
  d:'This time the branch has no RadSec. A printer that cannot do 802.1X is authorised by its MAC address (MAB). The branch sends a plain UDP Access-Request straight across the Internet.',
  st:[{t:'Across the Internet · plain UDP',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq)]}],
  tip:'MAB is not EAP, so RFC 2869 does not force a Message-Authenticator onto the packet. That missing attribute is exactly what Blast-RADIUS (CVE-2024-3596) needs.'};
-const B2={n:'On-path attacker injects collision data',p:'Dino World ✕',lane:['B','A'],seg:[{k:['BX'],c:C.forge},{k:['XA','FA'],c:C.radius}],forge:'inject',
+const B2={n:'On-path attacker injects collision data',p:'Dino World ✕',lane:['B','A'],seg:[{k:['BI'],c:C.forge},{k:['IP','PF','FA'],c:C.radius}],forge:'inject',
  d:'A raptor on the path lets the request through, but first slips crafted bytes into a Proxy-State attribute. It does not know the shared secret and does not need to.',
  st:[{t:'Tampered request · forwarded to ISE',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq.concat([['Proxy-State','Attacker-chosen bytes · an MD5 chosen-prefix collision']]))]}],
  tip:'RADIUS echoes Proxy-State back unchanged in the response, so the attacker’s bytes end up inside the server’s Response Authenticator calculation. This is the lever the attack pulls.'};
-const B3={n:'ISE legitimately rejects the printer',p:'ISE → attacker',lane:['A','B'],seg:[{k:['-FA','-XA'],c:C.radius},{k:['-BX'],c:C.forge}],forge:'reject',
+const B3={n:'ISE legitimately rejects the printer',p:'ISE → attacker',lane:['A','B'],seg:[{k:['-FA','-PF','-IP'],c:C.radius},{k:['-BI'],c:C.forge}],forge:'reject',
  d:'ISE has no rule for this MAC, so it correctly answers Access-Reject. The attacker intercepts it before it reaches the branch.',
  st:[{t:'The genuine reply · intercepted',L:[ipPub('198.51.100.10','203.0.113.7'),radMAB('3 · Access-Reject',88,[['Reply-Message','Unknown device'],['Proxy-State','echoed back unchanged']])]}],
  tip:'Everything ISE did was correct. The weakness is not in the server’s decision; it is in how a RADIUS response is authenticated on an untrusted path.'};
-const B4={n:'Reject forged into Accept',p:'Attacker → Branch',lane:['A','B'],seg:[{k:['-BX'],c:C.forge,sec:0}],forge:'accept',final:'fail',
+const B4={n:'Reject forged into Accept',p:'Attacker → Branch',lane:['A','B'],seg:[{k:['-BI'],c:C.forge,sec:0}],forge:'accept',final:'fail',
  d:'Using the collision, the attacker turns the Access-Reject into a valid-looking Access-Accept and even adds a VLAN. The branch admits the rogue printer.',
  st:[{t:'Forged response · accepted by the branch',L:[ipPub('198.51.100.10','203.0.113.7'),radMAB('2 · Access-Accept (FORGED)',88,[['Tunnel-Private-Group-ID','1 · attacker’s choice'],['Proxy-State','the collision bytes, still present']])]}],
  tip:'The branch cannot tell the difference, because the forged Response Authenticator validates. The giveaway is the unexpected Proxy-State in an Accept. The real fix is to require Message-Authenticator on every packet, or to use RadSec so none of this is reachable.'};
 
 /* --- RadSec cert rejected --- */
-const C3={n:'Branch rejects the proxy certificate',p:'Branch → Proxy',lane:['B','P'],seg:[{k:['BP'],c:C.fail,sec:1}],final:'fail',
+const C3={n:'Branch rejects the proxy certificate',p:'Branch → Proxy',lane:['B','P'],seg:[{k:['BI','IP'],c:C.fail,sec:1}],final:'fail',
  d:'The branch cannot validate the proxy’s certificate, so it aborts the TLS handshake with a fatal alert. The tunnel never forms and no RADIUS is ever sent.',
  st:[{t:'RadSec TLS · branch → proxy',L:[tcp('ACK'),tlsRec([['Alert','Fatal · unknown_ca (48)']])]}],cert:BAD_PROXY_CERT,
  tip:'This protects the branch from connecting to a rogue proxy. Fix it by trusting the correct issuing CA on the branch and matching the proxy name. The same would happen in reverse if the proxy did not trust the branch certificate.'};
 
 /* --- firewall blocks 2083 --- */
-const F13a={n:'TCP SYN dropped at the DMZ edge',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BP'],c:C.tcp,end:'drop'}],
+const F13a={n:'TCP SYN dropped at the DMZ edge',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BI'],c:C.tcp,end:'drop'}],
  d:'The branch tries to open the RadSec connection, but the DMZ firewall has no rule for inbound TCP 2083 and drops the SYN.',
  st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN',[['Sequence','0']])]}],
  tip:'Unlike UDP RADIUS, which simply times out, a blocked TCP connection fails to establish. On the branch the symptom is "RADIUS server unreachable" even though ISE is healthy.'};
-const F13b={n:'SYN retransmitted, dropped again',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BP'],c:C.tcp,end:'drop'}],
+const F13b={n:'SYN retransmitted, dropped again',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BI'],c:C.tcp,end:'drop'}],
  d:'TCP retransmits the SYN after its timeout. The firewall drops it again.',
  st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN (retransmission)',[['Sequence','0']])]}],
  tip:'Allow inbound TCP 2083 from the branch public address to the proxy, and the return traffic. For the DTLS variant it would be UDP 2083 instead.'};
@@ -680,7 +680,7 @@ const DES=(x,y)=>x+(vn(x/8+40,y/8)-.5)*14<104&&y+(vn(x/8,y/8+40)-.5)*10<112;
 const FX0=216,FX1=326,FY0=126,FY1=184;
 const DMZ=(x,y)=>x>FX0&&x<FX1&&y>FY0&&y<FY1+2;
 const NODES={S:[44,140],N:[110,140],R:[170,96],F:[230,96],A:[292,56],W:[56,80],I:[292,156],C:[192,22],L:[44,95],B:[270,194],P:[270,150]};
-const PATHS={SN:[[44,140],[110,140]],NR:[[110,140],[140,140],[140,96],[170,96]],RF:[[170,96],[230,96]],FA:[[230,96],[260,96],[260,56],[292,56]],NW:[[110,140],[110,110],[56,110],[56,80]],FI:[[230,96],[230,116],[292,116],[292,156]],BP:[[270,194],[270,150]],PF:[[270,150],[270,110],[230,110],[230,96]],BX:[[270,194],[270,134]],XA:[[270,134],[270,110],[230,110],[230,96]]};
+const PATHS={SN:[[44,140],[110,140]],NR:[[110,140],[140,140],[140,96],[170,96]],RF:[[170,96],[230,96]],FA:[[230,96],[260,96],[260,56],[292,56]],NW:[[110,140],[110,110],[56,110],[56,80]],FI:[[230,96],[230,116],[292,116],[292,156]],BP:[[270,194],[270,150]],PF:[[270,150],[270,110],[230,110],[230,96]],BX:[[270,194],[270,134]],XA:[[270,134],[270,110],[230,110],[230,96]],BI:[[270,194],[270,172],[292,172],[292,156]],IP:[[292,156],[292,150],[270,150]]};
 function stamp(x,y,rd){for(let j=-rd;j<=rd;j++)for(let i=-rd;i<=rd;i++)if(inb(x+i,y+j))PM[(y+j)*W+x+i]=1;}
 for(const k in PATHS){const p=PATHS[k];for(let s=0;s<p.length-1;s++){const a=p[s],c=p[s+1];const L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let t=0;t<=L;t++)stamp(a[0]+Math.sign(c[0]-a[0])*t,a[1]+Math.sign(c[1]-a[1])*t,4);}}
 for(const k in NODES)stamp(NODES[k][0],NODES[k][1],12);
@@ -741,7 +741,7 @@ function bridge(cx,y){cx=Math.round(cx);for(let x=cx-6;x<=cx+6;x++)for(let j=-3;
 bridge(rcx(140),140);bridge(rcx(110),110);
 for(let x=256;x<=264;x++)for(let y=36;y<100;y++)if(QK[y*W+x])bt(x,y,(x==256||x==264)?'#5870A0':(y%2?'#B8D0E8':'#E8F0F8'));
 function dots(pts,col){for(let i=0;i<pts.length-1;i++){const a=pts[i],c=pts[i+1],L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let s=5;s<L-4;s+=6){const x=a[0]+Math.sign(c[0]-a[0])*s,y=a[1]+Math.sign(c[1]-a[1])*s;b.fillStyle='#503010';b.fillRect((x-2)*P,(y-2)*P,4*P,4*P);b.fillStyle=col;b.fillRect((x-1)*P,(y-1)*P,2*P,2*P);b.fillStyle='#F8F8E8';b.fillRect((x-1)*P,(y-1)*P,P,P);}}}
-dots(PATHS.NW,'#A0A0A8');dots(PATHS.FI,'#A0A0A8');['SN','NR','RF','FA'].forEach(k=>dots(PATHS[k],'#F8D070'));
+dots(PATHS.NW,'#A0A0A8');['SN','NR','RF','FA'].forEach(k=>dots(PATHS[k],'#F8D070'));
 function mountain(cx,by,s){const des=DES(cx,by-4),h=Math.round(28*s),hw=Math.round(16*s);for(let dx=-hw-2;dx<=hw+2;dx++)if(land(cx+dx,by+1))bt(cx+dx,by+1,des?'#C89048':'#2E8A2E');
  for(let i=0;i<=h;i++){const y=by-h+i,half=Math.max(0,Math.round(i/h*hw+(i>2?(hs(cx,y)-.5)*1.6:0)));
   for(let dx=-half;dx<=half;dx++){const x=cx+dx;let c;
@@ -862,7 +862,7 @@ function smallLaptop(x,y,st){ob(x-6,y-15,12,9,'#404058');r(x-5,y-14,10,7,scrCol(
 function smallPad(x,y){r(x-7,y-2,14,5,D);r(x-6,y-1,12,3,'#F8C830');r(x-4,y-1,5,1,'#F8F0A0');r(x-5,y+1,10,1,'#C08010');}
 function devices(){
  const w12=WORLD==='1-2',st=authed?'ok':(failed?'fail':'wait');
- if(unlocked)goldDots(PATHS.NW);
+ if(unlocked)goldDots(PATHS.NW);if(unlocked3)w13roads();
  for(const k in NODES){if(k=='C'||k=='L'||k=='B'||k=='P')continue;const[x,y]=NODES[k];pad(x,y,(k=='W'&&!unlocked)||k=='I');}
  let[x,y]=NODES.S;bigLaptop(x,y,WORLD==='1-1'?st:'idle');
  if(unlocked){[x,y]=NODES.L;smallPad(x,y);smallLaptop(x,y,w12?st:'idle');}
@@ -879,7 +879,7 @@ function devices(){
  [x,y]=NODES.W;ob(x-8,y-9,16,4,'#C8C8D0');r(x-7,y-9,14,1,'#E8E8F0');r(x-6,y-19,2,10,'#787880');r(x+4,y-19,2,10,'#787880');r(x-6,y-20,2,1,'#A8F0F8');r(x+4,y-20,2,1,'#A8F0F8');
  if(unlocked)r(x+3,y-7,3,1,WORLD==='1-2'?(authed?'#30D058':(failed?'#F83030':(clk%30<15?'#F8B800':'#604000'))):'#686878');
  [x,y]=NODES.I;for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){const d2=dx*dx+dy*dy;if(d2<=64)r(x+dx,y-12+dy,1,1,d2>49?D:((dx==0||dy==0||Math.abs(d2-20)<4)?'#686878':'#A8A8B8'));}
- if(unlocked3){w13cable();branchIsland();radsecProxy();}
+ if(unlocked3){branchIsland();radsecProxy();}
  for(const k of['W','I','C']){if(k=='W'&&unlocked)continue;[x,y]=NODES[k];if(k=='C')y+=cloudBob();ob(x+6,y-8,7,6,'#D8B030');r(x+7,y-11,5,1,D);r(x+7,y-11,1,3,D);r(x+11,y-11,1,3,D);r(x+9,y-6,1,2,D);}
 }
 const NODEBOX={S:[-11,-25,22,30],N:[-14,-20,28,25],R:[-11,-22,22,27],F:[-14,-30,28,35],A:[-11,-41,22,46],W:[-11,-21,26,26],I:[-11,-21,26,26],C:[-24,-14,48,26],L:[-9,-17,18,22],B:[-17,-14,34,20],P:[-11,-17,22,21]};
@@ -1088,10 +1088,10 @@ function radsecProxy(){const[x,y]=NODES.P,act=WORLD==='1-3',on=act&&authed,bad=a
  const lc=bad?'#F86060':(on?'#44E070':'#16C8B6');
  r(x-2,y-11,1,2,'#D8F4EE');r(x+1,y-11,1,2,'#D8F4EE');r(x-1,y-12,2,1,'#D8F4EE');r(x-2,y-10,4,1,'#D8F4EE');
  r(x-4,y-9,8,8,'#0A4A44');r(x-3,y-8,6,6,lc);r(x-1,y-6,2,3,'#073029');}
-function w13cable(){const pts=PATHS.BP;g.fillStyle='rgba(16,40,70,0.5)';for(let i=0;i<pts.length-1;i++){const a=pts[i],c=pts[i+1],L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let s=0;s<L;s+=2){const x=a[0]+Math.sign(c[0]-a[0])*s,y=a[1]+Math.sign(c[1]-a[1])*s;g.fillRect(x*P,y*P,P,P);}}}
+function w13roads(){goldDots(PATHS.PF);goldDots(PATHS.IP);goldDots(PATHS.BI);}
 let forgeFx=0,forgeKind='';
 function doForge(kind){forgeFx=120;forgeKind=kind;}
-function drawForge(){if(forgeFx<=0)return;forgeFx--;const[ix,iy]=[270,134];
+function drawForge(){if(forgeFx<=0)return;forgeFx--;const[ix,iy]=[278,172];
  const bob=Math.round(Math.sin(clk/5)*1.5);const rx=ix,ry=iy-14+bob,dir=1;const q=(dx,dy,w,h,c)=>r(rx+dx,ry+dy,w,h,c);
  q(-9,-7,5,3,D);q(-8,-6,4,1,'#C83030');q(-5,-8,9,5,D);q(-4,-7,7,3,'#E84040');q(-3,-7,5,1,'#F87878');q(3,-11,7,5,D);q(4,-10,5,3,'#E84040');q(7,-10,1,1,D);q(6,-8,3,1,'#F8F0E0');q(7,-9,1,1,'#F8F030');q(-2,-3,2,3,D);q(1,-3,2,3,D);
  g.font='10px "Press Start 2P"';g.textAlign='center';const t=forgeKind==='inject'?'TAMPERED':(forgeKind==='accept'?'FORGED!':'INTERCEPTED');const ty=(iy-20-((120-forgeFx)>>3))*P;
