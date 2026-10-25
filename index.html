@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="A 16-bit overworld learning aid for wired 802.1X EAP-TLS: animated packets, click-to-zoom packet and device inspectors, failure scenarios and a quiz.">
+<meta name="description" content="A 16-bit overworld for learning network security: 802.1X with EAP-TLS on wired and Wi-Fi networks, with animated packets, inspectors, failure scenarios and quizzes.">
 <meta property="og:title" content="NetSec World · 802.1X EAP-TLS">
-<meta property="og:description" content="Follow one laptop through 802.1X EAP-TLS on a playable 16-bit map: EAPOL, RADIUS, the mutual TLS handshake, and four ways it fails.">
+<meta property="og:description" content="Follow one laptop through 802.1X EAP-TLS on a playable 16-bit map, wired and over Wi-Fi.">
 <meta property="og:type" content="website">
 <title>NetSec World</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
 :root{
   --sky:#E4EBFA; --panel:#FFFFFF; --panel-2:#EEF2FC; --line:#1B1F4A; --ink:#1B1F4A;
   --text:#14183A; --muted:#454D78; --gold:#F8D830; --gold-ink:#7A5400;
-  --eapol:#D42C2C; --radius:#E0A000; --tls:#8A3CE0; --ok:#1E9E44; --fail:#D83A3A; --eth:#5A6AB0; --ip:#1F9A92; --cert:#2E9E58; --eap:#D0408C;
+  --eapol:#D42C2C; --radius:#E0A000; --tls:#8A3CE0; --ok:#1E9E44; --fail:#D83A3A; --eth:#5A6AB0; --ip:#1F9A92; --cert:#2E9E58; --eap:#D0408C; --wifi:#1FA2CC; --key:#C83AB0; --rsn:#3A6FD0;
   --f-pixel:"Press Start 2P", ui-monospace, monospace;
   --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -112,7 +112,7 @@ ul.facts{margin:0;padding-left:18px;font-size:15px;display:flex;flex-direction:c
 .track .ar{position:absolute;top:8px;height:6px;border-radius:1px}
 .track .hd{position:absolute;top:4px;width:0;height:0;border-top:7px solid transparent;border-bottom:7px solid transparent}
 .track .xx{position:absolute;top:0;font-family:var(--f-pixel);font-size:11px;color:var(--fail)}
-.eps{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.eps{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px}
 .ep{padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .ep .tag{font-family:var(--f-pixel);font-size:9px;align-self:flex-start;padding:5px 7px;border-radius:3px;background:var(--panel-2);color:var(--muted);border:2px solid var(--line)}
 .ep.now .tag{background:var(--gold);color:var(--ink)}
@@ -132,6 +132,31 @@ ul.facts{margin:0;padding-left:18px;font-size:15px;display:flex;flex-direction:c
 .q .fb{font-size:14.5px;color:var(--text);margin:0}
 .score{font-family:var(--f-pixel);font-size:10px;color:var(--gold-ink)}
 footer{font-size:14px;color:var(--muted)}
+[hidden]{display:none!important}
+.worlds{display:flex;flex-wrap:wrap;gap:10px}
+.worlds button{font-family:var(--f-pixel);font-size:11px;line-height:1.4;color:var(--ink);background:var(--panel);border:3px solid var(--line);border-radius:5px;padding:10px 13px;cursor:pointer;box-shadow:3px 3px 0 var(--line);display:inline-flex;align-items:center;gap:8px}
+.worlds button:hover{background:var(--panel-2)}
+.worlds button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.worlds button.locked{background:repeating-linear-gradient(135deg,#FFFFFF,#FFFFFF 6px,#EEF1FA 6px,#EEF1FA 12px);color:var(--muted);border-style:dashed}
+.worlds .lk{font-size:8px;background:var(--muted);color:#fff;padding:3px 5px;border-radius:2px}
+.unlock{border:3px solid var(--line);background:#FFF1A8;border-radius:6px;padding:12px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;box-shadow:4px 4px 0 var(--line)}
+.unlock.lockedmsg{background:var(--panel-2)}
+.unlock p{margin:0;flex:1 1 260px;min-width:0;font-size:15px}
+.unlock b{font-family:var(--f-pixel);font-size:11px;font-weight:400;display:block;margin-bottom:6px;color:var(--ink)}
+.unlock button,.ep .play{font-family:var(--f-pixel);font-size:10px;background:var(--ink);color:#fff;border:2px solid var(--line);border-radius:4px;padding:9px 11px;cursor:pointer;box-shadow:2px 2px 0 var(--gold)}
+.ep .play{align-self:flex-start;margin-top:4px}
+.ep.avail .tag{background:#C8F2D2;color:#0B3B1A}
+.ep .req{font-size:14px;color:var(--ink);font-weight:500}
+.k-wifi{border-left-color:var(--wifi)}.k-llc{border-left-color:#8A92B8}.k-rsn{border-left-color:var(--rsn)}.k-key{border-left-color:var(--key)}.k-tcp{border-left-color:#5C9FD6}.k-radsec{border-left-color:#12B5A6}
+.keys{border:2px solid var(--line);border-left:6px solid var(--key);background:#F8F0FD;border-radius:3px;padding:10px}
+.keys .lh{color:var(--ink)}
+.kc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kh{font-family:var(--f-pixel);font-size:9px;color:var(--muted);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--f-mono);font-size:12.5px;padding:2px 7px;border:2px solid var(--line);border-radius:3px;background:#fff;color:var(--text)}
+.chip.new{background:#FFE36A}
+.chip.none{border-style:dashed;color:var(--muted)}
+.kn{margin:8px 0 0;font-size:14px}
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 </style>
 </head>
@@ -139,11 +164,11 @@ footer{font-size:14px;color:var(--muted)}
 <div class="wrap">
   <header>
     <div>
-      <div class="eyebrow">World 1-1 · Wired 802.1X with EAP-TLS</div>
+      <div class="eyebrow" id="eyebrow">World 1-1 · Wired 802.1X with EAP-TLS</div>
       <h1>NetSec World</h1>
-      <p>Follow one laptop through certificate-based network access: EAPOL to the switch, RADIUS across the routed network and firewall, and a full mutual TLS handshake with ISE. Click any device or the moving packet to zoom in and inspect it.</p>
+      <p id="intro">Follow one laptop through certificate-based network access: EAPOL to the switch, RADIUS across the routed network and firewall, and a full mutual TLS handshake with ISE. Click any device or the moving packet to zoom in and inspect it.</p>
     </div>
-    <div class="legend" aria-label="Packet colour legend">
+    <div class="legend" id="legend" aria-label="Packet colour legend">
       <span><i style="background:var(--eapol)"></i>EAPOL (802.1X)</span>
       <span><i style="background:var(--radius)"></i>RADIUS</span>
       <span><i style="background:var(--tls)"></i>TLS inside EAP</span>
@@ -154,15 +179,17 @@ footer{font-size:14px;color:var(--muted)}
 
   <section class="stage">
     <div class="mapcol">
+      <div class="worlds" role="group" aria-label="World" id="worlds"></div>
       <div class="scen" role="group" aria-label="Scenario" id="scen"></div>
       <div class="win mapbox">
-        <canvas id="map" width="1360" height="800" role="img" aria-label="Pixel art overworld map of the network: supplicant laptop, access switch NAD, router, firewall, and ISE RADIUS server in DC ISE World, with Wi-Fi AP in a desert and the Internet in Dino World DMZ."></canvas>
+        <canvas id="map" width="1360" height="800" role="img" aria-label="Pixel art overworld map of the network: supplicant laptop, access switch NAD, router, firewall, and ISE RADIUS server in DC ISE World, with a Wi-Fi access point and wireless laptop in a desert, and the Internet in Dino World DMZ."></canvas>
         <div class="mapbar">
           <button id="follow" aria-pressed="false">Follow packet</button>
           <button id="zoomout">Whole map</button>
         </div>
         <div class="hint" id="hint">Click a device or packet</div>
       </div>
+      <div class="unlock" id="unlock" hidden></div>
       <div class="win caption" aria-live="polite">
         <div class="c1" id="cap1"></div>
         <div class="c2" id="cap2"></div>
@@ -191,14 +218,8 @@ footer{font-size:14px;color:var(--muted)}
 
   <section class="sec">
     <h2>Episodes</h2>
-    <p class="lead">NetSec World is a series. Each world on the map unlocks a new lesson, and this first episode covers the wired path to DC ISE World.</p>
-    <div class="eps">
-      <div class="win ep now"><span class="tag">Now playing</span><h3>1-1 · Wired 802.1X with EAP-TLS</h3><p class="zone">Grasslands → Router lake → Firewall → DC ISE World</p><p>EAPOL, RADIUS encapsulation, the mutual TLS handshake, certificate checks, VLAN assignment and four ways it fails.</p></div>
-      <div class="win ep locked"><span class="tag">Locked</span><h3>1-2 · Wi-Fi: EAP-TLS and the 4-way handshake</h3><p class="zone">Desert RF World</p><p>The same EAP-TLS over 802.11, then the MPPE keys become the PMK for the 4-way handshake. WPA3-Enterprise and 192-bit mode.</p></div>
-      <div class="win ep locked"><span class="tag">Locked</span><h3>1-3 · RadSec and cloud RADIUS</h3><p class="zone">Dino World DMZ</p><p>RADIUS over TLS on TCP 2083 across untrusted networks, why plain UDP RADIUS should never cross the Internet, and DMZ proxy design.</p></div>
-      <div class="win ep locked"><span class="tag">Locked</span><h3>1-4 · ??? from the lake</h3><p class="zone">Router lake</p><p>Something surfaces mid-session and changes a port's access without the user reconnecting. Hint: UDP 1700 and 3799.</p></div>
-      <div class="win ep locked"><span class="tag">Locked</span><h3>1-5 · Cloud Access World</h3><p class="zone">The cloud over the northern sea</p><p>Coming soon. Authentication and access from the cloud side of the network.</p></div>
-    </div>
+    <p class="lead">NetSec World is a series. Each world on the map unlocks a new lesson, and finishing any journey opens the next world.</p>
+    <div class="eps" id="eps"></div>
   </section>
 
   <section class="sec">
@@ -207,12 +228,12 @@ footer{font-size:14px;color:var(--muted)}
     <div class="quiz" id="quiz"></div>
   </section>
 
-  <footer>Addresses, names and identifiers are illustrative examples. The handshake shown is EAP-TLS with TLS 1.2 (RFC 5216); EAP-TLS 1.3 (RFC 9190) shortens the flight but keeps the same roles.</footer>
+  <footer>Addresses, names and identifiers are illustrative examples. The handshake shown is EAP-TLS with TLS 1.2 (RFC 5216); EAP-TLS 1.3 (RFC 9190) shortens the flight but keeps the same roles. World 1-2 shows WPA2-Enterprise with CCMP-128; WPA3-Enterprise uses the same steps and makes Protected Management Frames mandatory. World 1-3 shows RadSec (RADIUS over TLS, RFC 6614, being revised by the IETF RADEXT group) and the Blast-RADIUS attack (CVE-2024-3596) it prevents.</footer>
 </div>
 
 <script>
 /* ---------------- data ---------------- */
-const C={eapol:'#E83838',radius:'#F8B800',tls:'#A050F8',ok:'#30D058',fail:'#F86060'};
+const C={eapol:'#E83838',radius:'#F8B800',tls:'#A050F8',ok:'#30D058',fail:'#F86060',wifi:'#38C8F0',key:'#F060D0',tcp:'#5C9FD6',radsec:'#12B5A6',forge:'#F0308C'};
 const UP=['NR','RF','FA'],DOWN=['-FA','-RF','-NR'],TOFW=['NR','RF'];
 const MAC_PC='00:1A:2B:3C:4D:5E',MAC_SW='70:10:6F:A1:00:0C';
 const STATE='ReauthSession:0A0A630200000012A4F3C1D2';
@@ -329,7 +350,7 @@ const K4={n:'Retransmission, discarded again',p:'NAD → ISE ✕',lane:['N','A']
  d:'The NAD retransmits the same request with the same wrong key. ISE discards it again.',rad:S3.rad,
  tip:'Fix the key in both places: the radius server definition on the switch and the network device entry in ISE.'};
 
-const SCEN=[
+const SCEN11=[
  {id:'ok',n:'Happy path',steps:[S1,S2,S3,S4,S5,S6,S7,S8,S9,S10],out:'Port authorised · VLAN 20'},
  {id:'exp',n:'Expired client cert',bad:1,steps:[S1,S2,S3,S4,S5,S6,Object.assign({},S7,{cert:EXP_CERT}),X8,X9,rej(40,4,'The port stays unauthorised. If an authentication-fail VLAN is configured on the NAD, the laptop lands there instead.')],out:'Access-Reject · certificate expired'},
  {id:'ca',n:'Untrusted server cert',bad:1,steps:[S1,S2,S3,S4,S5,Object.assign({},S6,{cert:BAD_SERVER_CERT}),U7,rej(39,3,'ISE Live Logs show a TLS alert sent by the client, meaning the client rejected the ISE certificate. It is not a problem with the client certificate. Many "ISE rejected my laptop" tickets are really this.')],out:'EAP-Failure · supplicant rejected ISE'},
@@ -353,7 +374,7 @@ const NODEINFO={
  I:{t:'Internet · Dino World DMZ',sub:'Locked until Episode 1-3',facts:['Plain RADIUS over UDP should never cross the Internet.','RadSec carries RADIUS inside TLS on TCP 2083.','Proxies in the DMZ keep the dinosaurs outside the data centre.'],code:''}
 };
 
-const QUIZ=[
+const QUIZ11=[
  {q:'Which device relays the TLS handshake without being able to read it?',o:['The supplicant','The NAD (switch)','ISE'],a:1,e:'The NAD only moves the EAP payload between EAPOL and RADIUS. The TLS session is between the laptop and ISE.'},
  {q:'Which RADIUS attribute carries the EAP packet between the NAD and ISE?',o:['State','Class','EAP-Message','Calling-Station-Id'],a:2,e:'EAP-Message (type 79) carries the EAP payload. Message-Authenticator must accompany it.'},
  {q:'What lets ISE match each Access-Request to the right ongoing conversation?',o:['The State attribute echoed by the NAD','The UDP source port','The EAP Type field'],a:0,e:'ISE hands out State in each Access-Challenge and the NAD returns it in the next Access-Request.'},
@@ -362,6 +383,280 @@ const QUIZ=[
  {q:'Before authorisation, what does the switch port accept from the laptop?',o:['Only EAPOL frames (EtherType 0x888E) and link protocols','DHCP and DNS only','Everything, but in a guest VLAN'],a:0,e:'An unauthorised 802.1X port passes EAPOL and link-layer protocols only, unless other features are configured.'}
 ];
 
+/* ---------------- World 1-2: Wi-Fi ---------------- */
+const BSSID='68:3B:78:5E:21:40',MAC_W='3C:22:FB:9A:51:07';
+const APM=BSSID+' (AP)',CLM=MAC_W+' (laptop Wi-Fi)',BCAST='FF:FF:FF:FF:FF:FF (broadcast)';
+const STATE2='ReauthSession:0A141E0500000031B7E2A9C4';
+const UP12=['-NW','NR','RF','FA'],DOWN12=['-FA','-RF','-NR','NW'];
+const ipUp2={n:'IPv4 + UDP',k:'ip',f:[['Source','10.20.30.5 : 50112 (AP, NAS-IP)'],['Destination','10.50.1.10 : 1812 (ISE PSN)'],['Path','Switch → Router → Firewall → DC']]};
+const ipDn2={n:'IPv4 + UDP',k:'ip',f:[['Source','10.50.1.10 : 1812 (ISE PSN)'],['Destination','10.20.30.5 : 50112 (AP)'],['Path','DC → Firewall → Router → Switch']]};
+const req2=(st,mtu)=>[['User-Name',ID],['Service-Type','Framed (2)'],['Framed-MTU',mtu||'1300'],['NAS-IP-Address','10.20.30.5'],['NAS-Identifier','AP-DESERT-01'],['NAS-Port-Type','Wireless - IEEE 802.11 (19)'],['Called-Station-Id','68-3B-78-5E-21-40:CORP-SECURE'],['Calling-Station-Id','3C-22-FB-9A-51-07']].concat(st?[['State',st]]:[]).concat([['EAP-Message','EAP packet, shown below'],MA]);
+const ch2=()=>[['State',STATE2],['Session-Timeout','30'],['EAP-Message','EAP packet, shown below'],MA];
+const accept2=[['User-Name',ID],['Class','CACS:0A141E0500000031B7E2A9C4:ise-psn01'],['Session-Timeout','28800 (re-authenticate after 8 hours)'],['Termination-Action','RADIUS-Request (1)'],['Tunnel-Type','VLAN (13)'],['Tunnel-Medium-Type','IEEE-802 (6)'],['Tunnel-Private-Group-ID','30'],['MS-MPPE-Recv-Key','First 32 bytes of the MSK, encrypted with the shared secret · becomes the PMK'],['MS-MPPE-Send-Key','Second 32 bytes of the MSK, encrypted with the shared secret'],['EAP-Message','EAP-Success'],MA];
+const mgmt=(sub,a1,a2)=>({n:'802.11 MAC header',k:'wifi',f:[['Frame control','Management · '+sub],['Address 1 (receiver)',a1],['Address 2 (transmitter)',a2],['Address 3 (BSSID)',BSSID]]});
+const dataUp={n:'802.11 MAC header',k:'wifi',f:[['Frame control','Data · QoS Data (2/8) · To DS = 1'],['Address 1 (receiver)',APM],['Address 2 (transmitter)',CLM],['Address 3 (destination)',BSSID],['Protected','0 · not encrypted, no keys yet']]};
+const dataDn={n:'802.11 MAC header',k:'wifi',f:[['Frame control','Data · QoS Data (2/8) · From DS = 1'],['Address 1 (receiver)',CLM],['Address 2 (transmitter)',APM],['Address 3 (source)',BSSID],['Protected','0 · not encrypted, no keys yet']]};
+const LLC={n:'LLC / SNAP header',k:'llc',f:[['DSAP / SSAP','0xAA / 0xAA'],['Control','0x03 (UI)'],['EtherType','0x888E (EAPOL)']]};
+const rsnIE={n:'RSN element',k:'rsn',f:[['Version','1'],['Group cipher','00-0F-AC:4 · CCMP-128'],['Pairwise cipher','00-0F-AC:4 · CCMP-128'],['AKM suite','00-0F-AC:1 · IEEE 802.1X'],['RSN capabilities','MFPC = 1 (PMF capable) · MFPR = 0']]};
+const EK=eapol('3 · EAPOL-Key');
+const keyL=f=>({n:'EAPOL-Key descriptor',k:'key',f:[['Descriptor type','2 · RSN']].concat(f)});
+const upEAP=(e)=>[dataUp,LLC,E0,e],dnEAP=(e)=>[dataDn,LLC,E0,e];
+
+const W1={n:'Beacon',p:'AP → everyone in range',lane:['W','L'],seg:[{k:['~WL'],c:C.wifi,air:1}],
+ d:'The AP announces CORP-SECURE about ten times a second. Its RSN element tells clients the network uses 802.1X to authenticate and CCMP to encrypt.',
+ st:[{t:'Over the air · broadcast',L:[mgmt('Beacon (0/8)',BCAST,APM),{n:'Beacon body',k:'wifi',f:[['SSID','CORP-SECURE'],['Channel','36 (5 GHz)'],['Beacon interval','100 TU (102.4 ms)'],['Capability','ESS · Privacy']]},rsnIE]}],
+ tip:'AKM suite 00-0F-AC:1 is what makes this an Enterprise network. 00-0F-AC:2 would mean a pre-shared key, and 00-0F-AC:8 WPA3-Personal (SAE). A client can also ask with a Probe Request and get the same details in a Probe Response.'};
+const W2={n:'Open System authentication',p:'Laptop ⇄ AP',lane:['L','W'],both:1,seg:[{k:['~LW'],c:C.wifi,air:1},{k:['~WL'],c:C.wifi,air:1}],
+ d:'A leftover from the original 802.11 standard. The laptop asks to authenticate and the AP accepts. Nothing about the laptop has been checked.',
+ st:[{t:'Over the air · laptop → AP',L:[mgmt('Authentication (0/11)',APM,CLM),{n:'Authentication body',k:'wifi',f:[['Algorithm','0 · Open System'],['Transaction sequence','1']]}]},
+     {t:'Over the air · AP → laptop',L:[mgmt('Authentication (0/11)',CLM,APM),{n:'Authentication body',k:'wifi',f:[['Algorithm','0 · Open System'],['Transaction sequence','2'],['Status','0 · Successful']]}]}],
+ tip:'The name is misleading. Real authentication comes later with 802.1X. WPA3-Personal replaces this exchange with SAE, but Enterprise networks keep Open System here.'};
+const W3={n:'Association request and response',p:'Laptop ⇄ AP',lane:['L','W'],both:1,seg:[{k:['~LW'],c:C.wifi,air:1},{k:['~WL'],c:C.wifi,air:1}],
+ d:'The laptop asks to join CORP-SECURE and repeats the security settings it chose in its own RSN element. The AP accepts and assigns association ID 1.',
+ st:[{t:'Over the air · laptop → AP',L:[mgmt('Association Request (0/0)',APM,CLM),{n:'Association Request body',k:'wifi',f:[['SSID','CORP-SECURE'],['Capability','ESS · Privacy'],['Listen interval','10 beacons']]},rsnIE]},
+     {t:'Over the air · AP → laptop',L:[mgmt('Association Response (0/1)',CLM,APM),{n:'Association Response body',k:'wifi',f:[['Status','0 · Successful'],['Association ID','1'],['Capability','ESS · Privacy']]}]}],
+ tip:'The laptop is now associated but not authorised. The AP blocks everything except EAPOL, just like the unauthorised switch port in World 1-1.'};
+const W4={n:'EAP-Request / Identity',p:'AP → Laptop',lane:['W','L'],seg:[{k:['~WL'],c:C.eapol,air:1}],
+ d:'Here the AP is the 802.1X authenticator. It asks for an identity straight after association, usually without waiting for an EAPOL-Start.',
+ st:[{t:'Over the air · AP → laptop',L:dnEAP(eap('1 · Request',1,'1 · Identity'))}],
+ tip:'EAPOL travels inside ordinary 802.11 data frames, behind an LLC/SNAP header carrying EtherType 0x888E. Nothing is encrypted yet, because no keys exist.'};
+const mkW5=mtu=>({n:'EAP-Response / Identity → Access-Request',p:'Laptop → AP → ISE',lane:['L','W','A'],seg:[{k:['~LW'],c:C.eapol,air:1},{k:UP12,c:C.radius}],
+ d:'The laptop answers with its machine identity. The AP wraps it in a RADIUS Access-Request and sends it to ISE through the switch, router and firewall.',
+ st:[{t:'Over the air · laptop → AP',L:upEAP(eap('2 · Response',1,'1 · Identity',[['Identity',ID]]))},
+     {t:'Across the network · RADIUS',L:[ipUp2,rad('1 · Access-Request',52,req2(null,mtu)),eap('2 · Response',1,'1 · Identity',[['Identity',ID]])]}],
+ tip:'On Wi-Fi the AP is the NAD, so RADIUS starts at the AP. NAS-Port-Type 19 marks the request as wireless, and Called-Station-Id carries the BSSID and SSID so ISE policy can match on the network name. With a Cisco wireless controller, the AP tunnels client frames to the WLC in CAPWAP and the WLC sends the RADIUS instead.'});
+const W5=mkW5();
+const W6={n:'Access-Challenge → EAP-TLS Start',p:'ISE → AP → Laptop',lane:['A','W','L'],seg:[{k:DOWN12,c:C.radius},{k:['~WL'],c:C.eapol,air:1}],
+ d:'ISE chooses EAP-TLS. The AP unwraps the Access-Challenge and sends the EAP-TLS Start to the laptop over the air.',
+ st:[{t:'Across the network · RADIUS',L:[ipDn2,rad('11 · Access-Challenge',52,ch2()),eap('1 · Request',2,'13 · EAP-TLS',[['Flags','0x20 · Start']])]},
+     {t:'Over the air · AP → laptop',L:dnEAP(eap('1 · Request',2,'13 · EAP-TLS',[['Flags','0x20 · Start']]))}],
+ tip:'From here the EAP-TLS conversation is the same as in World 1-1. Only the first hop has changed, from a cable to radio.'};
+const T4=c=>[{k:['~LW'],c:c,air:1},{k:UP12,c:c},{k:DOWN12,c:c},{k:['~WL'],c:c,air:1}];
+const W7={n:'TLS: ClientHello and the ISE certificate',p:'Laptop ⇄ AP ⇄ ISE',lane:['L','W','A'],both:1,seg:T4(C.tls),
+ d:'The laptop sends ClientHello. ISE answers with its certificate and asks for the laptop’s. The laptop checks the ISE certificate before going any further.',
+ st:[{t:'Inside EAP-TLS · laptop → ISE',L:[tCH]},{t:'Inside EAP-TLS · ISE → laptop',L:[tSH]}],cert:SERVER_CERT,
+ tip:'Each TLS flight rides inside EAP over the air and inside RADIUS across the network, exactly as in World 1-1. The server’s flight is split into several EAP-TLS fragments, and the laptop must acknowledge each one, so every fragment is a full round trip from ISE to the laptop and back.'};
+const W8={n:'TLS: client certificate and Finished',p:'Laptop ⇄ AP ⇄ ISE',lane:['L','W','A'],both:1,seg:T4(C.tls),
+ d:'The laptop sends its certificate and proves it holds the private key. ISE validates it and replies with Finished, and the laptop sends an empty acknowledgement.',
+ st:[{t:'Inside EAP-TLS · laptop → ISE',L:[tCC]},{t:'Inside EAP-TLS · ISE → laptop',L:[tFin]}],cert:CLIENT_CERT,
+ keys:{c:[['MSK',1]],a:[],note:'The laptop and ISE each derive the same 64-byte Master Session Key (MSK) from the TLS session. The AP has no keys yet.'},
+ tip:'The MSK never crosses the air. Both ends calculate it independently from the TLS handshake.'};
+const W9={n:'Access-Accept → EAP-Success',p:'ISE → AP → Laptop',lane:['A','W','L'],seg:[{k:DOWN12,c:C.ok},{k:['~WL'],c:C.ok,air:1}],
+ d:'ISE sends Access-Accept with VLAN 30 and the keying material. The AP keeps the PMK and passes EAP-Success to the laptop.',
+ st:[{t:'Across the network · RADIUS',L:[ipDn2,rad('2 · Access-Accept',56,accept2),eap('3 · Success',4)]},{t:'Over the air · AP → laptop',L:dnEAP(eap('3 · Success',4))}],
+ keys:{c:[['MSK'],['PMK',1]],a:[['PMK',1]],note:'The PMK is the first 32 bytes of the MSK. The laptop takes it from its own MSK. The AP receives the same value in MS-MPPE-Recv-Key, encrypted with the RADIUS shared secret.'},
+ tip:'Authentication is finished, but the laptop still cannot send traffic. Wi-Fi needs encryption keys first, and creating them is the job of the 4-way handshake.'};
+const W10={n:'4-way handshake · Message 1',p:'AP → Laptop',lane:['W','L'],seg:[{k:['~WL'],c:C.key,air:1}],
+ d:'The AP starts the handshake with a random number, the ANonce. Together with its own random SNonce, the laptop now has everything it needs to calculate the PTK.',
+ st:[{t:'Over the air · AP → laptop',L:[dataDn,LLC,EK,keyL([['Key information','Pairwise · Ack · descriptor version 2'],['Replay counter','1'],['Key nonce','ANonce: 32 random bytes from the AP'],['Key MIC','Empty, because there is no PTK yet'],['Key data','PMKID (optional)']])]}],
+ keys:{c:[['PMK'],['PTK',1]],a:[['PMK']],note:'The PTK is calculated, never sent. Each side works it out from the PMK, both MAC addresses and both nonces.'},
+ tip:'PTK = PRF-384(PMK, "Pairwise key expansion", both MAC addresses, ANonce, SNonce). It splits into three 128-bit keys: the KCK signs handshake messages, the KEK encrypts key data, and the TK encrypts traffic.'};
+const W11={n:'4-way handshake · Message 2',p:'Laptop → AP',lane:['L','W'],seg:[{k:['~LW'],c:C.key,air:1}],
+ d:'The laptop sends its SNonce, protected with a MIC made using the KCK. The AP can now derive the same PTK and check the MIC.',
+ st:[{t:'Over the air · laptop → AP',L:[dataUp,LLC,EK,keyL([['Key information','Pairwise · MIC · descriptor version 2'],['Replay counter','1'],['Key nonce','SNonce: 32 random bytes from the laptop'],['Key MIC','HMAC-SHA1-128, keyed with the KCK'],['Key data','The laptop’s RSN element, as sent in its Association Request']])]}],
+ keys:{c:[['PMK'],['PTK']],a:[['PMK'],['PTK',1]],note:'A valid MIC proves the laptop has the same PMK, without the PMK ever being sent.'},
+ tip:'The AP compares this RSN element with the one in the Association Request. If someone had tampered with the security settings in between, they would not match and the handshake would stop.'};
+const W12={n:'4-way handshake · Message 3',p:'AP → Laptop',lane:['W','L'],seg:[{k:['~WL'],c:C.key,air:1}],
+ d:'The AP proves it has the PTK too, sends the group keys encrypted with the KEK, and tells the laptop to install its keys.',
+ st:[{t:'Over the air · AP → laptop',L:[dataDn,LLC,EK,keyL([['Key information','Pairwise · Install · Ack · MIC · Secure · Encrypted key data'],['Replay counter','2'],['Key nonce','ANonce (repeated)'],['Key MIC','HMAC-SHA1-128, keyed with the KCK'],['Key data','Encrypted with the KEK: the AP’s RSN element, the GTK and the IGTK']])]}],
+ keys:{c:[['PMK'],['PTK'],['GTK',1],['IGTK',1]],a:[['PMK'],['PTK'],['GTK'],['IGTK']],note:'The laptop decrypts the group keys with the KEK, and installs them and the PTK as it sends Message 4. The GTK protects broadcast and multicast traffic. The IGTK protects broadcast management frames, because both sides support PMF.'},
+ tip:'The AP’s RSN element must match the one in the beacon. That lets the laptop detect a forged beacon trying to push it to weaker security.'};
+const W13={n:'4-way handshake · Message 4',p:'Laptop → AP',lane:['L','W'],seg:[{k:['~LW'],c:C.key,air:1}],final:'ok',
+ d:'The laptop confirms. The AP installs the PTK, and from now on every unicast frame between them is encrypted with the TK using CCMP.',
+ st:[{t:'Over the air · laptop → AP',L:[dataUp,LLC,EK,keyL([['Key information','Pairwise · MIC · Secure'],['Replay counter','2'],['Key nonce','Empty'],['Key MIC','HMAC-SHA1-128, keyed with the KCK'],['Key data','None']])]}],
+ keys:{c:[['PMK'],['PTK'],['GTK'],['IGTK']],a:[['PMK'],['PTK',1],['GTK'],['IGTK']],note:'Both sides have installed their keys. The PMK stays cached, so reconnecting to this AP can skip the full EAP exchange.'},
+ tip:'Only now does the AP open its controlled port, place the laptop in VLAN 30 and let DHCP and normal traffic through, all of it encrypted.'};
+
+const WU8={n:'TLS Alert: unknown_ca',p:'Laptop → AP → ISE',lane:['L','W','A'],seg:[{k:['~LW'],c:C.fail,air:1},{k:UP12,c:C.fail}],
+ d:'The laptop cannot validate the ISE certificate, so it refuses to continue and sends a fatal TLS alert. It never sends its own certificate.',
+ st:[{t:'Inside EAP-TLS · laptop → ISE',L:[tls([['Alert','Fatal · unknown_ca (48)']])]}],cert:BAD_SERVER_CERT,
+ tip:'This is the laptop protecting itself from an evil twin: a rogue access point with its own RADIUS server. A Wi-Fi profile pushed with the trusted root and server names makes this decision for the user, instead of showing a trust prompt.'};
+const WU9={n:'Access-Reject → EAP-Failure → Deauthentication',p:'ISE → AP → Laptop',lane:['A','W','L'],seg:[{k:DOWN12,c:C.fail},{k:['~WL'],c:C.fail,air:1}],final:'fail',
+ d:'ISE rejects the session. The AP sends EAP-Failure and then deauthenticates the laptop.',
+ st:[{t:'Across the network · RADIUS',L:[ipDn2,rad('3 · Access-Reject',54,[['EAP-Message','EAP-Failure'],MA]),eap('4 · Failure',3)]},
+     {t:'Over the air · AP → laptop',L:dnEAP(eap('4 · Failure',3))},
+     {t:'Over the air · AP → laptop',L:[mgmt('Deauthentication (0/12)',CLM,APM),{n:'Deauthentication body',k:'wifi',f:[['Reason code','23 · IEEE 802.1X authentication failed']]}]}],
+ tip:'The user just sees “Can’t connect to this network”. Reason code 23 in a wireless capture, or the client’s TLS alert in ISE Live Logs, points straight at certificate trust on the device.'};
+
+const WF7={n:'TLS ClientHello',p:'Laptop → AP → ISE',lane:['L','W','A'],seg:[{k:['~LW'],c:C.tls,air:1},{k:UP12,c:C.tls}],
+ d:'The laptop starts the TLS handshake. The ClientHello is small, so it reaches ISE without trouble.',
+ st:[{t:'Inside EAP-TLS · laptop → ISE',L:[tCH]},{t:'Across the network · RADIUS',L:[ipUp2,rad('1 · Access-Request',53,req2(STATE2,'1500'))]}],
+ tip:'Framed-MTU 1500 tells ISE it may send EAP packets of up to 1500 bytes. Once RADIUS, UDP and IP headers are added, its next reply will be bigger than the 1500-byte path MTU.'};
+const WF8={n:'Access-Challenge fragmented and dropped',p:'ISE → Firewall ✕',lane:['A','F'],seg:[{k:['-FA'],c:C.tls,end:'drop'}],
+ d:'ISE replies with its certificate. The packet is about 1,600 bytes, so it leaves ISE as two IP fragments, and the firewall drops them. The AP never receives it.',
+ st:[{t:'Across the network · fragment 1',L:[{n:'IPv4 fragment 1 of 2',k:'ip',f:[['Source','10.50.1.10'],['Destination','10.20.30.5'],['Total length','1500 bytes'],['Flags','More Fragments = 1'],['Fragment offset','0 · carries the UDP header']]}]},
+     {t:'Across the network · fragment 2',L:[{n:'IPv4 fragment 2 of 2',k:'ip',f:[['Total length','About 140 bytes'],['Flags','More Fragments = 0'],['Fragment offset','1480 bytes (field value 185) · no UDP header, so no port 1812']]}]},
+     {t:'Reassembled, it would have been',L:[rad('11 · Access-Challenge',53,ch2()),eap('1 · Request',3,'13 · EAP-TLS',[['Flags','0xC0 · Length included, more fragments']]),tSH]}],
+ tip:'Only the first fragment carries the UDP header, so a rule matching udp/1812 cannot see the port on the rest. Firewalls that filter fragments, and some VPN paths, drop them. Without every fragment the packet can’t be reassembled.'};
+const WF9={n:'Retransmission, dropped again',p:'AP → ISE → Firewall ✕',lane:['W','A'],both:1,xat:'F',seg:[{k:UP12,c:C.radius},{k:['-FA'],c:C.tls,end:'drop'}],
+ d:'With no reply, the AP retransmits its Access-Request. ISE spots the duplicate and resends the same large reply, which is dropped again.',
+ st:[{t:'Across the network · RADIUS',L:[ipUp2,rad('1 · Access-Request (retransmission)',53,req2(STATE2,'1500'))]}],
+ tip:'The retransmission keeps the same RADIUS Identifier (53), so ISE treats it as a duplicate and replays its cached answer instead of starting again.'};
+const WF10={n:'Handshake stalls, laptop gives up',p:'Laptop ✕',lane:['L'],seg:[],final:'fail',wait:1,none:'No packet arrives. The laptop is still waiting for the ISE certificate.',
+ d:'The laptop never receives the server certificate. Its EAP timer runs out, it disconnects, then tries again and fails the same way.',
+ tip:'The tell-tale signs: ClientHello reaches ISE and then nothing, only sites behind this path fail, and small packets work. ISE logs typically say the supplicant stopped responding during the certificate exchange, which looks like a laptop problem but isn’t. Lower Framed-MTU on the AP (1300 keeps packets under 1500 bytes) or allow IP fragments for RADIUS through the firewall.'};
+
+const SCEN12=[
+ {id:'ok',n:'Happy path',steps:[W1,W2,W3,W4,W5,W6,W7,W8,W9,W10,W11,W12,W13],out:'Connected · WPA2-Enterprise · VLAN 30'},
+ {id:'ca',n:'Untrusted server cert',bad:1,steps:[W1,W2,W3,W4,W5,W6,Object.assign({},W7,{cert:BAD_SERVER_CERT}),WU8,WU9],out:'Deauthenticated · laptop rejected ISE'},
+ {id:'frag',n:'Firewall drops fragments',bad:1,steps:[W1,W2,W3,W4,mkW5('1500'),W6,WF7,WF8,WF9,WF10],out:'Timeout · ISE certificate never arrived'}
+];
+
+const INFO12={
+ L:{t:'Supplicant · laptop-042 on Wi-Fi',sub:'The same laptop, now wireless',facts:['Uses the same machine certificate as in World 1-1. Only the network interface changes.','The Wi-Fi profile pins the SSID, EAP-TLS, the trusted root CA and the allowed server names.','ISE sees its wireless MAC, 3C:22:FB:9A:51:07, as the Calling-Station-Id.','After the 4-way handshake it encrypts unicast traffic with the TK and receives broadcasts protected by the GTK.'],
+  code:'<span class="cm"># Wi-Fi profile, pushed by MDM or Group Policy</span>\nSSID              : CORP-SECURE\nSecurity          : WPA2-Enterprise, AES (CCMP)\nEAP method        : EAP-TLS\nClient cert       : CN=laptop-042.corp.example\nTrusted root CA   : Corp Root CA\nConnect to servers: ise-psn01.corp.example'},
+ W:{t:'Authenticator · AP-DESERT-01',sub:'The wireless NAD in Desert RF World',facts:['Advertises CORP-SECURE in beacons, with an RSN element for 802.1X and CCMP.','Blocks everything except EAPOL until the laptop is authorised and the 4-way handshake completes.','Sends RADIUS to ISE itself from 10.20.30.5, so ISE must know it as a network device.','Receives the PMK in MS-MPPE-Recv-Key inside the Access-Accept.','With a Cisco wireless controller, the WLC plays this role and the AP tunnels client frames to it in CAPWAP.'],
+  code:'<span class="cm"># WLAN settings on the AP</span>\nSSID          : CORP-SECURE  (5 GHz, channel 36)\nSecurity      : WPA2-Enterprise\nEncryption    : AES-CCMP-128\nAKM           : 802.1X (00-0F-AC:1)\nPMF           : Optional (capable)\nRADIUS server : 10.50.1.10  auth 1812  acct 1813\nShared secret : ********\nFramed-MTU    : 1300'},
+ N:{t:'Access switch · SW-ACC-01',sub:'Just a wired hop in this world',facts:['The AP plugs into this switch, and its RADIUS traffic passes through like any other routed packet.','In World 1-2 the switch is not the authenticator. The AP is.','The AP’s own switch port can run 802.1X too, with the AP as the supplicant, so nobody can unplug the AP and use its cable.'],code:''},
+ F:{t:'Firewall · DC-EDGE-FW',sub:'Must permit RADIUS from the AP',facts:['The AP sends RADIUS from 10.20.30.5, so it needs its own rules for UDP 1812 and 1813.','RADIUS packets carrying certificates can exceed 1500 bytes and arrive as IP fragments. Only the first fragment carries the UDP port, so port-based rules and fragment filtering can silently break EAP-TLS.','Change of Authorization still runs the other way, from ISE to the AP.'],
+  code:'rule src             dst            svc       action\n20   10.20.30.0/24   10.50.1.10     udp/1812  permit  <span class="cm"># auth</span>\n21   10.20.30.0/24   10.50.1.10     udp/1813  permit  <span class="cm"># accounting</span>\n22   10.50.1.10      10.20.30.0/24  udp/3799  permit  <span class="cm"># CoA</span>\n<span class="cm"># check how IP fragments of these flows are handled</span>\n99   any             any            any       deny log'},
+ A:{t:'Authentication server · ISE',sub:'DC ISE World, policy service node ise-psn01',facts:['Validates the laptop certificate exactly as for wired access, and matches the SSID through Called-Station-Id.','Sends the first 32 bytes of the MSK to the AP as MS-MPPE-Recv-Key, encrypted with the shared secret.','Must know the AP as a network device, with the same shared secret.'],
+  code:'Network device : AP-DESERT-01   10.20.30.5   secret ********\nPolicy set     : Wireless_802.1X\n Condition     : Called-Station-ID ENDS_WITH :CORP-SECURE\n Authentication: EAP-TLS → Certificate profile (CN)\n Authorization :\n  IF Certificate Issuer CN = Corp Issuing CA 01\n  THEN Corp_WiFi_VLAN30\n       (Access-Accept, Tunnel-Private-Group-ID = 30)'}
+};
+
+const QUIZ12=[
+ {q:'Which RSN element value tells a laptop that the SSID uses 802.1X?',o:['AKM suite 00-0F-AC:1','AKM suite 00-0F-AC:2','Pairwise cipher 00-0F-AC:4'],a:0,e:'AKM 1 means 802.1X authentication. AKM 2 is a pre-shared key, and cipher 4 is CCMP, the encryption method.'},
+ {q:'What does 802.11 Open System authentication prove about the laptop?',o:['Its certificate is valid','Nothing, it always succeeds','That it knows the Wi-Fi password'],a:1,e:'It is a legacy step that always succeeds. Real authentication happens later with 802.1X and EAP-TLS.'},
+ {q:'Where does the AP get the PMK from?',o:['It derives it from the beacon','MS-MPPE-Recv-Key in the Access-Accept','The laptop sends it in Message 2'],a:1,e:'ISE sends the first 32 bytes of the MSK as MS-MPPE-Recv-Key, encrypted with the RADIUS shared secret. That becomes the PMK. The PMK itself never crosses the air.'},
+ {q:'Which 4-way handshake message delivers the group key (GTK)?',o:['Message 1','Message 2','Message 3','Message 4'],a:2,e:'Message 3 carries the GTK, encrypted with the KEK and protected by a MIC.'},
+ {q:'Which key actually encrypts the laptop’s unicast traffic?',o:['The PMK','The TK, part of the PTK','The GTK'],a:1,e:'The PTK splits into the KCK, KEK and TK. The TK encrypts unicast frames with CCMP. The GTK covers broadcast and multicast.'},
+ {q:'EAP-TLS stalls right after ClientHello, but small RADIUS packets get through. What is a likely cause?',o:['An expired client certificate','Dropped IP fragments of large RADIUS packets','The wrong SSID'],a:1,e:'Packets carrying certificates can exceed 1500 bytes and be fragmented. If a firewall drops the fragments, the server certificate never arrives. Lower Framed-MTU or allow the fragments.'}
+];
+
+const WORLDS={
+ '1-1':{scen:SCEN11,quiz:QUIZ11,lanes:['Laptop','NAD','ISE'],lanex:{S:1/6,N:3/6,F:4.1/6,A:5/6},client:'S',auth:'N',celeb:'PORT OPEN!',celebDy:40,waitDx:0,waitDy:30,
+  banner:'World 1-1  802.1X EAP-TLS',eyebrow:'World 1-1 · Wired 802.1X with EAP-TLS',
+  intro:'Follow one laptop through certificate-based network access: EAPOL to the switch, RADIUS across the routed network and firewall, and a full mutual TLS handshake with ISE. Click any device or the moving packet to zoom in and inspect it.',
+  legend:[['var(--eapol)','EAPOL (802.1X)'],['var(--radius)','RADIUS'],['var(--tls)','TLS inside EAP'],['var(--ok)','Accept'],['var(--fail)','Failure']]},
+ '1-2':{scen:SCEN12,quiz:QUIZ12,lanes:['Laptop (Wi-Fi)','AP','ISE'],lanex:{L:1/6,W:3/6,F:4.1/6,A:5/6},client:'L',auth:'W',celeb:'WI-FI SECURED!',celebDy:46,waitDx:18,waitDy:24,
+  banner:'World 1-2  Wi-Fi EAP-TLS',eyebrow:'World 1-2 · Wi-Fi with EAP-TLS',
+  intro:'Take the same laptop wireless. Watch it find CORP-SECURE over the air, run EAP-TLS through the access point to ISE, then turn the keys from the Access-Accept into Wi-Fi encryption with the 4-way handshake. Click any device or the moving packet to zoom in and inspect it.',
+  legend:[['var(--wifi)','802.11 management'],['var(--eapol)','EAPOL over the air'],['var(--radius)','RADIUS'],['var(--tls)','TLS inside EAP'],['var(--key)','4-way handshake'],['var(--ok)','Accept'],['var(--fail)','Failure']]}
+};
+const AIR={WL:[[56,79],[44,90]],LW:[[44,90],[56,79]]};
+let SCEN=SCEN11,QUIZ=QUIZ11,WORLD='1-1',unlocked=false,unlocked3=false,unlockFx=0,unlockWorld='1-2';
+try{unlocked=localStorage.getItem('netsecworld.w12')==='1';}catch(e){}
+try{unlocked3=localStorage.getItem('netsecworld.w13')==='1';}catch(e){}
+
+/* ---------------- World 1-3: RadSec across the Internet ---------------- */
+const MAC_PR='A4:5E:60:C1:07:9F';
+const ipPub=(s,d)=>({n:'IPv4 (public Internet)',k:'ip',f:[['Source',s],['Destination',d],['Note','Crosses the public Internet · Dino World']]});
+const tcp=(flags,extra)=>({n:'TCP',k:'tcp',f:[['Source port','51820 (branch)'],['Destination port','2083 (RadSec)'],['Flags',flags]].concat(extra||[])});
+const tlsRec=recs=>({n:'TLS record (RadSec transport)',k:'radsec',f:recs});
+const radsecCH=tlsRec([['ClientHello','TLS 1.3 · client random · cipher suites incl. TLS_AES_256_GCM_SHA384']]);
+const radsecSH=tlsRec([['ServerHello + Certificate','radsec-proxy.corp.example + Corp Issuing CA 01'],['CertificateRequest','Proxy asks the branch for a client certificate'],['Finished','End of the server flight']]);
+const radsecCC=tlsRec([['Certificate','ap-branch-07.corp.example + Corp Issuing CA 01'],['CertificateVerify','Signed with the branch private key'],['Finished','Branch flight complete']]);
+const PROXY_CERT={t:'RadSec proxy certificate',f:[['Subject','CN=radsec-proxy.corp.example'],['SAN','DNS:radsec-proxy.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-02-10 → 2028-02-09'],['Key','ECDSA P-256 · SHA-256'],['EKU','Server Authentication (1.3.6.1.5.5.7.3.1)']],by:'Checked by the branch NAD',ok:['Chains to Corp Root CA on the branch device','Name matches the configured RadSec server','Inside its validity period']};
+const BAD_PROXY_CERT=Object.assign({},PROXY_CERT,{bad:1,ok:null,x:['Issuer chain ends at a CA the branch does not trust','Or the proxy name does not match the branch configuration']});
+const BRANCH_CERT={t:'Branch NAD certificate',f:[['Subject','CN=ap-branch-07.corp.example'],['SAN','DNS:ap-branch-07.corp.example'],['Issuer','CN=Corp Issuing CA 01, O=Corp'],['Valid','2026-02-10 → 2027-02-10'],['Key','ECDSA P-256 · SHA-256'],['EKU','Client Authentication (1.3.6.1.5.5.7.3.2)']],by:'Checked by the RadSec proxy',ok:['Chains to a CA the proxy trusts','Inside its validity period','CertificateVerify proves the branch holds the private key']};
+
+const ipInt=(s,d)=>({n:'IPv4 + UDP (inside the DC)',k:'ip',f:[['Source',s],['Destination',d],['Transport','UDP · port 1812']]});
+const radMAB=(code,id,avp)=>({n:'RADIUS',k:'rad',f:[['Code',code],['Identifier',String(id)],['Authenticator','16 bytes · MD5-based (the Blast-RADIUS weakness)']],avp:avp});
+const mabReq=[['User-Name','a4-5e-60-c1-07-9f (the printer MAC)'],['User-Password','a4-5e-60-c1-07-9f · MD5-hidden with the shared secret'],['Service-Type','Call-Check (10)'],['NAS-IP-Address','203.0.113.7'],['NAS-Port-Type','Ethernet (15)'],['Calling-Station-Id','A4-5E-60-C1-07-9F'],['Message-Authenticator','ABSENT · nothing protects the packet as a whole']];
+
+/* --- happy path: RadSec tunnel --- */
+const R1={n:'TCP connection to the RadSec proxy',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,seg:[{k:['BP'],c:C.tcp},{k:['-BP'],c:C.tcp}],
+ d:'The branch opens a TCP connection to the proxy on port 2083. Unlike UDP RADIUS, RadSec rides on a reliable, ordered TCP stream.',
+ st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN',[['Sequence','0']])]},
+     {t:'Across the Internet · proxy → branch',L:[ipPub('198.51.100.10','203.0.113.7'),tcp('SYN, ACK',[['Sequence','0'],['Acknowledgement','1']])]},
+     {t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('ACK',[['Acknowledgement','1']])]}],
+ tip:'RadSec is defined in RFC 6614 (being revised by the IETF RADEXT group to obsolete it). It uses TCP 2083. There is also a DTLS-over-UDP variant on the same port number.'};
+const R2={n:'RadSec TLS handshake · proxy proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BP'],c:C.radsec,sec:1},{k:['-BP'],c:C.radsec,sec:1}],
+ d:'The branch sends ClientHello. The proxy presents its certificate and, because RadSec is mutual, asks the branch for one too. The branch validates the proxy first.',
+ st:[{t:'RadSec TLS · branch → proxy',L:[radsecCH]},{t:'RadSec TLS · proxy → branch',L:[radsecSH]}],cert:PROXY_CERT,
+ tip:'This is a second, outer TLS session, separate from any EAP-TLS inside. RadSec requires both ends to authenticate with certificates (TLS-PSK is the alternative). A rogue server on the path cannot complete this handshake.'};
+const R3={n:'RadSec TLS handshake · branch proves itself',p:'Branch ⇄ Proxy',lane:['B','P'],both:1,sec:1,seg:[{k:['BP'],c:C.radsec,sec:1},{k:['-BP'],c:C.radsec,sec:1}],
+ d:'The branch sends its own certificate and signs the handshake. The proxy validates it. Both ends are now authenticated and the tunnel is encrypted.',
+ st:[{t:'RadSec TLS · branch → proxy',L:[radsecCC]},{t:'RadSec TLS · proxy → branch',L:[tlsRec([['Finished','Tunnel established · TLS 1.3 keys in use']])]}],cert:BRANCH_CERT,
+ tip:'Mutual authentication is what makes RadSec safe across the Internet. The static shared secret still exists for compatibility, but RFC 6614 fixes it to the literal word "radsec", because the TLS tunnel now provides the real security.'};
+const R4={n:'Access-Request inside the tunnel',p:'Branch → Proxy',lane:['B','P'],sec:1,seg:[{k:['BP'],c:C.radsec,sec:1}],
+ d:'Now the ordinary RADIUS begins, but sealed inside the TLS tunnel. A user at the branch is doing EAP-TLS, and that whole exchange is relayed to the proxy.',
+ st:[{t:'Encrypted inside RadSec',L:[tcp('ACK · application data'),tlsRec([['Application data','The RADIUS packet below, encrypted']]),rad('1 · Access-Request',71,[['User-Name',ID],['NAS-IP-Address','203.0.113.7'],['Called-Station-Id','...:CORP-BRANCH'],['EAP-Message','EAP-TLS, relayed from the branch user'],MA]),eap('2 · Response',1,'13 · EAP-TLS')]}],
+ tip:'On the wire an eavesdropper sees only TLS records on TCP 2083. The RADIUS attributes, the usernames and the EAP conversation are all hidden. This is the whole point of RadSec.'};
+const R5={n:'Proxy relays plain RADIUS to ISE',p:'Proxy → ISE',lane:['P','A'],seg:[{k:['PF','FA'],c:C.radius}],
+ d:'The proxy unwraps the tunnel and forwards the request to ISE as normal RADIUS over UDP. This hop stays inside the trusted data centre.',
+ st:[{t:'Inside the DC · proxy → ISE',L:[ipInt('10.60.1.10','10.50.1.10'),rad('1 · Access-Request',44,[['User-Name',ID],['EAP-Message','EAP-TLS'],MA])]}],
+ tip:'Plain UDP RADIUS is acceptable here because the data centre is a trusted, controlled network. RadSec protects the dangerous part: the journey across the Internet.'};
+const R6={n:'ISE Access-Accept',p:'ISE → Proxy',lane:['A','P'],seg:[{k:['-FA','-PF'],c:C.ok}],
+ d:'ISE authorises the user and replies to the proxy with Access-Accept over plain RADIUS, inside the DC.',
+ st:[{t:'Inside the DC · ISE → proxy',L:[ipInt('10.50.1.10','10.60.1.10'),rad('2 · Access-Accept',44,[['Tunnel-Private-Group-ID','40'],['EAP-Message','EAP-Success'],MA])]}],
+ tip:'The proxy is a RADIUS server to the branch and a RADIUS client to ISE. ISE only needs to trust the proxy as a single network device, not every remote site.'};
+const R7={n:'Accept returns through the tunnel',p:'Proxy → Branch',lane:['P','B'],sec:1,seg:[{k:['-BP'],c:C.ok,sec:1}],
+ d:'The proxy re-wraps the Access-Accept in the TLS tunnel and sends it back to the branch across the Internet.',
+ st:[{t:'Encrypted inside RadSec',L:[tlsRec([['Application data','The Access-Accept below, encrypted']]),rad('2 · Access-Accept',71,[['Tunnel-Private-Group-ID','40'],['EAP-Message','EAP-Success'],MA])]}],
+ tip:'Because the response travels inside the tunnel, the Blast-RADIUS forgery is impossible here: an attacker cannot read or alter a TLS-protected packet.'};
+const R8={n:'Branch authorises the user',p:'At the branch',lane:['B'],seg:[],final:'ok',none:'The branch NAD applies the result locally and opens the port in VLAN 40.',
+ d:'The branch access point puts the user on the right VLAN. A remote site has just authenticated safely against head-office ISE.',
+ tip:'One proxy in the DMZ can serve many branches over RadSec, each with its own certificate, without exposing RADIUS to the Internet or opening a VPN for it.'};
+
+/* --- Blast-RADIUS: plain UDP RADIUS with MAB --- */
+const B1={n:'A printer joins · MAB over plain RADIUS',p:'Branch → ISE',lane:['B','A'],seg:[{k:['BX','XA'],c:C.radius}],
+ d:'This time the branch has no RadSec. A printer that cannot do 802.1X is authorised by its MAC address (MAB). The branch sends a plain UDP Access-Request straight across the Internet.',
+ st:[{t:'Across the Internet · plain UDP',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq)]}],
+ tip:'MAB is not EAP, so RFC 2869 does not force a Message-Authenticator onto the packet. That missing attribute is exactly what Blast-RADIUS (CVE-2024-3596) needs.'};
+const B2={n:'On-path attacker injects collision data',p:'Dino World ✕',lane:['B','A'],seg:[{k:['BX'],c:C.forge},{k:['XA'],c:C.radius}],forge:'inject',
+ d:'A raptor on the path lets the request through, but first slips crafted bytes into a Proxy-State attribute. It does not know the shared secret and does not need to.',
+ st:[{t:'Tampered request · forwarded to ISE',L:[ipPub('203.0.113.7','198.51.100.10'),radMAB('1 · Access-Request',88,mabReq.concat([['Proxy-State','Attacker-chosen bytes · an MD5 chosen-prefix collision']]))]}],
+ tip:'RADIUS echoes Proxy-State back unchanged in the response, so the attacker’s bytes end up inside the server’s Response Authenticator calculation. This is the lever the attack pulls.'};
+const B3={n:'ISE legitimately rejects the printer',p:'ISE → attacker',lane:['A','B'],seg:[{k:['-XA'],c:C.radius},{k:['-BX'],c:C.forge,end:'forge'}],forge:'reject',
+ d:'ISE has no rule for this MAC, so it correctly answers Access-Reject. The attacker intercepts it before it reaches the branch.',
+ st:[{t:'The genuine reply · intercepted',L:[ipPub('198.51.100.10','203.0.113.7'),radMAB('3 · Access-Reject',88,[['Reply-Message','Unknown device'],['Proxy-State','echoed back unchanged']])]}],
+ tip:'Everything ISE did was correct. The weakness is not in the server’s decision; it is in how a RADIUS response is authenticated on an untrusted path.'};
+const B4={n:'Reject forged into Accept',p:'Attacker → Branch',lane:['A','B'],seg:[{k:['-BX'],c:C.forge,sec:0}],forge:'accept',final:'fail',
+ d:'Using the collision, the attacker turns the Access-Reject into a valid-looking Access-Accept and even adds a VLAN. The branch admits the rogue printer.',
+ st:[{t:'Forged response · accepted by the branch',L:[ipPub('198.51.100.10','203.0.113.7'),radMAB('2 · Access-Accept (FORGED)',88,[['Tunnel-Private-Group-ID','1 · attacker’s choice'],['Proxy-State','the collision bytes, still present']])]}],
+ tip:'The branch cannot tell the difference, because the forged Response Authenticator validates. The giveaway is the unexpected Proxy-State in an Accept. The real fix is to require Message-Authenticator on every packet, or to use RadSec so none of this is reachable.'};
+
+/* --- RadSec cert rejected --- */
+const C3={n:'Branch rejects the proxy certificate',p:'Branch → Proxy',lane:['B','P'],seg:[{k:['BP'],c:C.fail,sec:1}],final:'fail',
+ d:'The branch cannot validate the proxy’s certificate, so it aborts the TLS handshake with a fatal alert. The tunnel never forms and no RADIUS is ever sent.',
+ st:[{t:'RadSec TLS · branch → proxy',L:[tcp('ACK'),tlsRec([['Alert','Fatal · unknown_ca (48)']])]}],cert:BAD_PROXY_CERT,
+ tip:'This protects the branch from connecting to a rogue proxy. Fix it by trusting the correct issuing CA on the branch and matching the proxy name. The same would happen in reverse if the proxy did not trust the branch certificate.'};
+
+/* --- firewall blocks 2083 --- */
+const F13a={n:'TCP SYN dropped at the DMZ edge',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BP'],c:C.tcp,end:'drop'}],
+ d:'The branch tries to open the RadSec connection, but the DMZ firewall has no rule for inbound TCP 2083 and drops the SYN.',
+ st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN',[['Sequence','0']])]}],
+ tip:'Unlike UDP RADIUS, which simply times out, a blocked TCP connection fails to establish. On the branch the symptom is "RADIUS server unreachable" even though ISE is healthy.'};
+const F13b={n:'SYN retransmitted, dropped again',p:'Branch → Firewall ✕',lane:['B','P'],seg:[{k:['BP'],c:C.tcp,end:'drop'}],
+ d:'TCP retransmits the SYN after its timeout. The firewall drops it again.',
+ st:[{t:'Across the Internet · branch → proxy',L:[ipPub('203.0.113.7','198.51.100.10'),tcp('SYN (retransmission)',[['Sequence','0']])]}],
+ tip:'Allow inbound TCP 2083 from the branch public address to the proxy, and the return traffic. For the DTLS variant it would be UDP 2083 instead.'};
+const F13c={n:'Connection fails, branch gives up',p:'At the branch',lane:['B'],seg:[],final:'fail',wait:1,none:'No connection. The branch never reaches the proxy.',
+ d:'After its connection attempts fail, the branch marks the RadSec server unreachable. Users at the site cannot authenticate.',
+ tip:'A healthy RadSec design uses more than one proxy, in different DMZs, so a single blocked path or failed node does not take the whole site offline.'};
+
+const SCEN13=[
+ {id:'ok',n:'Happy path (RadSec)',steps:[R1,R2,R3,R4,R5,R6,R7,R8],out:'Branch online · RADIUS tunnelled safely'},
+ {id:'blast',n:'Blast-RADIUS (no RadSec)',bad:1,steps:[B1,B2,B3,B4],out:'Forged Accept · rogue printer admitted'},
+ {id:'cert',n:'Proxy cert rejected',bad:1,steps:[R1,R2,C3],out:'Tunnel refused · proxy not trusted'},
+ {id:'fw',n:'Firewall blocks 2083',bad:1,steps:[F13a,F13b,F13c],out:'Timeout · TCP 2083 blocked'}
+];
+
+const INFO13={
+ B:{t:'Branch NAD · AP-BRANCH-07',sub:'A remote site across the Internet',facts:['A small office with no direct link to head office, only an Internet connection.','Acts as a RADIUS client, but sends RadSec (RADIUS over TLS) to the proxy instead of plain UDP.','Holds its own certificate, CN=ap-branch-07, so the proxy can authenticate it.','Without RadSec it would have to expose RADIUS to the Internet or run a full VPN just for authentication.'],
+  code:'<span class="cm"># RadSec client on the branch NAD</span>\nradius server HQ-RADSEC\n address ipv4 198.51.100.10 tls port 2083\n tls connectiontimeout 30\n tls trustpoint client BRANCH-ID\n tls trustpoint server CORP-ROOT\n automate-tester username probe-radsec'},
+ P:{t:'RadSec proxy · radsec-proxy-01',sub:'Terminates RadSec in the DMZ',facts:['Listens on TCP 2083, in the DMZ, reachable from the Internet.','A RADIUS server to the branches, and a RADIUS client to ISE.','Terminates the TLS tunnel, then forwards plain RADIUS to ISE inside the DC.','Common software: radsecproxy, or a feature of the RADIUS server itself.','ISE trusts one device, the proxy, instead of every branch.'],
+  code:'<span class="cm"># radsecproxy.conf (abridged)</span>\nlisten  radsec  *:2083\ntls corp { CACertificateFile /etc/pki/corp-root.pem\n           certificateFile   /etc/pki/radsec-proxy.pem\n           certificateKeyFile /etc/pki/radsec-proxy.key }\nclient branches { type tls  tls corp\n                  matchCertificateAttribute CN:/.*\\.corp\\.example/ }\nserver ise { type udp  host 10.50.1.10  secret <...> }'},
+ I:{t:'Internet · Dino World',sub:'The untrusted path',facts:['Everything between the branch and the DMZ. Assume it is hostile.','Plain UDP RADIUS here is exposed to Blast-RADIUS (CVE-2024-3596): an on-path attacker can forge an Access-Accept from an Access-Reject using an MD5 collision.','RadSec removes the danger by wrapping RADIUS in mutually authenticated TLS.','The dinosaurs are a reminder: do not send anything across here in the clear.'],code:''},
+ F:{t:'Firewall · DMZ edge',sub:'Controls what reaches the proxy',facts:['Permits inbound TCP 2083 from branch sites to the RadSec proxy, and the replies.','A blocked port here fails the TCP connection outright, rather than timing out like UDP.','The proxy sits in the DMZ so that the Internet never reaches ISE directly.'],
+  code:'rule src             dst             svc       action\n30   203.0.113.0/24  198.51.100.10   tcp/2083  permit  <span class="cm"># RadSec in</span>\n31   198.51.100.10   10.50.1.10      udp/1812  permit  <span class="cm"># proxy → ISE</span>\n99   any             any             any       deny log'},
+ A:{t:'Authentication server · ISE',sub:'DC ISE World, unchanged',facts:['Sees one network device, the RadSec proxy, not the individual branches.','Does ordinary RADIUS over UDP with the proxy, inside the trusted DC.','For the Blast-RADIUS defence, ISE can require Message-Authenticator on every request and response.'],
+  code:'Network device : radsec-proxy-01   10.60.1.10   secret ********\nPolicy set     : Branch_RadSec\n Authentication: EAP-TLS → Certificate profile\n Authorization : Corp_Branch_VLAN40\nHardening      : Require Message-Authenticator = on'}
+};
+
+const QUIZ13=[
+ {q:'What does RadSec use to protect RADIUS across the Internet?',o:['A longer shared secret','Mutually authenticated TLS on TCP 2083','IPsec on UDP 1812'],a:1,e:'RadSec wraps RADIUS in TLS on TCP 2083, with both ends authenticating by certificate. The shared secret is fixed to the word "radsec".'},
+ {q:'Why is the EAP-TLS laptop safe from Blast-RADIUS, but the MAB printer is not?',o:['EAP-TLS uses a stronger cipher','EAP packets must carry a Message-Authenticator the attacker cannot forge','The printer uses a weaker password'],a:1,e:'RFC 2869 requires a Message-Authenticator (an HMAC over the whole packet) with EAP. MAB is not EAP, so by default nothing protects the packet as a whole.'},
+ {q:'In the Blast-RADIUS attack, what does the on-path attacker actually forge?',o:['The shared secret','An Access-Reject into an Access-Accept','The client certificate'],a:1,e:'Using an MD5 chosen-prefix collision seeded through Proxy-State, the attacker turns the server’s Access-Reject into a validly-authenticated Access-Accept, without knowing the secret.'},
+ {q:'Where does the RadSec proxy forward requests after the tunnel?',o:['Back across the Internet','As plain RADIUS to ISE inside the data centre','Directly to the branch'],a:1,e:'The proxy terminates the tunnel and sends ordinary UDP RADIUS to ISE on the trusted internal network.'},
+ {q:'How does a blocked RadSec port look different from a blocked UDP RADIUS port?',o:['They look identical','TCP fails to connect, rather than silently timing out','RadSec retries forever'],a:1,e:'RadSec runs on TCP, so a blocked 2083 fails the connection handshake. UDP RADIUS has no handshake and simply times out.'},
+ {q:'Besides RadSec, what is the recommended short-term fix for Blast-RADIUS?',o:['Require Message-Authenticator on every RADIUS packet','Use a 64-character shared secret','Shorten the RADIUS timeout'],a:0,e:'Requiring Message-Authenticator on all requests and responses blocks the forgery. Stronger secrets and shorter timeouts do not help.'}
+];
+WORLDS['1-3']={scen:SCEN13,quiz:QUIZ13,lanes:['Branch','Proxy','ISE'],lanex:{B:1/6,P:3/6,A:5/6},client:'B',auth:'B',celeb:'BRANCH ONLINE!',celebDy:46,waitDx:0,waitDy:26,
+ banner:'World 1-3  RadSec / RADIUS-TLS',eyebrow:'World 1-3 · RadSec across the Internet',
+ intro:'Connect a remote branch office to head-office ISE across the open Internet. Watch RadSec build a mutually authenticated TLS tunnel on TCP 2083 to a proxy in the DMZ, carry RADIUS safely inside it, and shut out the Blast-RADIUS forgery that plain UDP RADIUS allows. Click any device or the moving packet to zoom in and inspect it.',
+ legend:[['#5C9FD6','TCP 2083 setup'],['#12B5A6','RadSec (TLS)'],['var(--radius)','RADIUS inside'],['var(--ok)','Accept'],['var(--fail)','Failure'],['#F0308C','Forged (attack)']]};
 /* ---------------- scene setup ---------------- */
 const mc=document.getElementById('map'),m=mc.getContext('2d');
 const sc=document.createElement('canvas');sc.width=680;sc.height=400;const g=sc.getContext('2d');
@@ -384,8 +679,8 @@ const ICE=(x,y)=>x+(vn(x/9+20,y/9)-.5)*14>248&&y+(vn(x/9,y/9+20)-.5)*12<92;
 const DES=(x,y)=>x+(vn(x/8+40,y/8)-.5)*14<104&&y+(vn(x/8,y/8+40)-.5)*10<112;
 const FX0=216,FX1=326,FY0=126,FY1=184;
 const DMZ=(x,y)=>x>FX0&&x<FX1&&y>FY0&&y<FY1+2;
-const NODES={S:[44,140],N:[110,140],R:[170,96],F:[230,96],A:[292,56],W:[56,80],I:[292,156],C:[192,22]};
-const PATHS={SN:[[44,140],[110,140]],NR:[[110,140],[140,140],[140,96],[170,96]],RF:[[170,96],[230,96]],FA:[[230,96],[260,96],[260,56],[292,56]],NW:[[110,140],[110,110],[56,110],[56,80]],FI:[[230,96],[230,116],[292,116],[292,156]]};
+const NODES={S:[44,140],N:[110,140],R:[170,96],F:[230,96],A:[292,56],W:[56,80],I:[292,156],C:[192,22],L:[44,95],B:[270,194],P:[270,150]};
+const PATHS={SN:[[44,140],[110,140]],NR:[[110,140],[140,140],[140,96],[170,96]],RF:[[170,96],[230,96]],FA:[[230,96],[260,96],[260,56],[292,56]],NW:[[110,140],[110,110],[56,110],[56,80]],FI:[[230,96],[230,116],[292,116],[292,156]],BP:[[270,194],[270,150]],PF:[[270,150],[270,110],[230,110],[230,96]],BX:[[270,194],[270,134]],XA:[[270,134],[270,110],[280,86],[292,66],[292,56]]};
 function stamp(x,y,rd){for(let j=-rd;j<=rd;j++)for(let i=-rd;i<=rd;i++)if(inb(x+i,y+j))PM[(y+j)*W+x+i]=1;}
 for(const k in PATHS){const p=PATHS[k];for(let s=0;s<p.length-1;s++){const a=p[s],c=p[s+1];const L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let t=0;t<=L;t++)stamp(a[0]+Math.sign(c[0]-a[0])*t,a[1]+Math.sign(c[1]-a[1])*t,4);}}
 for(const k in NODES)stamp(NODES[k][0],NODES[k][1],12);
@@ -481,21 +776,21 @@ const spr=[];
 [[165,166,1],[185,160,1.2],[200,168,0.9]].forEach(q=>spr.push([q[1],()=>hill(q[0],q[1],q[2])]));
 [[16,120,0],[24,118,1],[20,128,0],[30,126,1],[12,134,1],[26,136,0],[72,162,0],[78,168,1],[124,160,0],[130,150,1],[148,116,0],[200,110,0],[212,116,1],[64,172,1],[196,148,0]].forEach(t=>{if(land(t[0],t[1]))spr.push([t[1],()=>t[2]?treeP(t[0],t[1]):treeD(t[0],t[1])]);});
 [[276,42],[322,62],[310,72],[330,80],[252,72],[268,82],[322,96]].forEach(t=>{if(land(t[0],t[1]))spr.push([t[1],()=>treeP(t[0],t[1],1)]);});
-[[70,72,1],[44,102,0.8],[66,104,1.1],[40,72,0.7]].forEach(c=>{if(land(c[0],c[1]))spr.push([c[1],()=>cactus(c[0],c[1],c[2])]);});
+[[70,72,1],[66,104,1.1],[40,72,0.7]].forEach(c=>{if(land(c[0],c[1]))spr.push([c[1],()=>cactus(c[0],c[1],c[2])]);});
 spr.push([98,()=>telescope(28,98)]);spr.push([106,()=>palm(79,106,1)]);
 spr.push([70,()=>snowman(276,70)]);spr.push([136,()=>bush(264,136)]);spr.push([182,()=>palm(246,182)]);spr.push([178,()=>palm(318,178)]);spr.push([160,()=>palm(222,160)]);spr.push([179,()=>eggNest(306,179)]);
 spr.sort((a,c)=>a[0]-c[0]).forEach(s=>s[1]());
 function post(x,y,h){if(!land(x,y))return;for(let j=0;j<h;j++){bt(x-1,y-j,'#181828');bt(x,y-j,'#D0D0D8');bt(x+1,y-j,'#808090');bt(x+2,y-j,'#181828');}for(let dx=-1;dx<=2;dx++)bt(x+dx,y-h,'#181828');bt(x,y-h+1,'#F0F0F8');}
 function sign(x,y){if(!land(x,y+6))return;for(let dx=0;dx<4;dx++)for(let dy=0;dy<4;dy++)bt(x-1+dx,y+dy,(dx==0||dx==3||dy==0||dy==3)?'#181828':'#F8D030');bt(x+1,y+1,'#181828');bt(x,y+2,'#181828');}
-for(const hh of[4,7,10])for(let x=FX0;x<=FX1;x++)if(land(x,FY0)&&(x<284||x>300))bt(x,FY0-hh,'#303038');
-for(let x=FX0;x<=FX1;x+=7)if(x<283||x>301)post(x,FY0,12);
+for(const hh of[4,7,10])for(let x=FX0;x<=FX1;x++)if(land(x,FY0)&&(x<263||x>278))bt(x,FY0-hh,'#303038');
+for(let x=FX0;x<=FX1;x+=7)if(x<262||x>279)post(x,FY0,12);
 for(const fx of[FX0,FX1])for(let y=FY0+1;y<=FY1;y++)if(land(fx,y)){for(let j=4;j<=10;j+=3)bt(fx,y-j,'#303038');if(y%6==0)post(fx,y,12);}
-for(const hh of[4,7,10])for(let x=FX0;x<=FX1;x++)if(land(x,FY1))bt(x,FY1-hh,'#303038');
-for(let x=FX0;x<=FX1;x+=7)post(x,FY1,12);
+for(const hh of[4,7,10])for(let x=FX0;x<=FX1;x++)if(land(x,FY1)&&(x<263||x>278))bt(x,FY1-hh,'#303038');
+for(let x=FX0;x<=FX1;x+=7)if(x<262||x>279)post(x,FY1,12);
 [FX0+14,FX0+42,FX1-7,FX1-28].forEach(x=>sign(x,FY0-8));[FX0+28,FX1-14,FX0+63].forEach(x=>sign(x,FY1-8));
-for(const gx of[283,300]){for(let j=0;j<22;j++){bt(gx-1,FY0-j,'#181828');bt(gx,FY0-j,'#B07838');bt(gx+1,FY0-j,'#8C5A2C');bt(gx+2,FY0-j,'#181828');}}
-for(let x=281;x<=304;x++){bt(x,FY0-23,'#181828');bt(x,FY0-22,'#C08848');bt(x,FY0-21,'#8C5A2C');bt(x,FY0-20,'#181828');}
-for(let x=287;x<=297;x++)for(let y=FY0-19;y<=FY0-15;y++)bt(x,y,(x==287||x==297||y==FY0-19||y==FY0-15)?'#181828':'#D02828');
+for(const gx of[261,278]){for(let j=0;j<22;j++){bt(gx-1,FY0-j,'#181828');bt(gx,FY0-j,'#B07838');bt(gx+1,FY0-j,'#8C5A2C');bt(gx+2,FY0-j,'#181828');}}for(const gx of[261,278]){for(let j=0;j<14;j++){bt(gx-1,FY1-j,'#181828');bt(gx,FY1-j,'#B07838');bt(gx+1,FY1-j,'#8C5A2C');bt(gx+2,FY1-j,'#181828');}bt(gx,FY1-14,'#F0C070');}
+for(let x=259;x<=282;x++){bt(x,FY0-23,'#181828');bt(x,FY0-22,'#C08848');bt(x,FY0-21,'#8C5A2C');bt(x,FY0-20,'#181828');}
+for(let x=265;x<=275;x++)for(let y=FY0-19;y<=FY0-15;y++)bt(x,y,(x==265||x==275||y==FY0-19||y==FY0-15)?'#181828':'#D02828');
 
 /* ---------------- dynamic drawing ---------------- */
 const r=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x*P,y*P,w*P,h*P);};
@@ -552,16 +847,27 @@ function dinos(){
  const vis=(clk%420)<300,blink=(clk%70)<5;if(vis&&!blink){r(261,130,1,1,'#F8E030');r(265,130,1,1,'#F8E030');}
  if((clk%240)<20){const w=(clk>>1)%2;r(305+w,175,1,1,D);}
 }
-function devices(){
- for(const k in NODES){if(k=='C')continue;const[x,y]=NODES[k];pad(x,y,k=='W'||k=='I');}
- let[x,y]=NODES.S;
- ob(x-8,y-23,16,15,'#404058');r(x-7,y-22,14,12,authed?'#48D880':(failed?'#E05050':'#48B8F0'));r(x-6,y-21,4,1,'#F8F8F8');r(x-6,y-20,2,1,'#F8F8F8');
- if(authed){r(x-3,y-15,2,2,'#F8F8F8');r(x-1,y-14,2,2,'#F8F8F8');r(x+1,y-16,2,2,'#F8F8F8');r(x+3,y-18,2,2,'#F8F8F8');}
- else if(failed){for(let i=0;i<6;i++){r(x-3+i,y-19+i,1,1,'#F8F8F8');r(x+2-i,y-19+i,1,1,'#F8F8F8');}}
+function goldDots(pts){for(let i=0;i<pts.length-1;i++){const a=pts[i],c=pts[i+1],L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let s=5;s<L-4;s+=6){const x=a[0]+Math.sign(c[0]-a[0])*s,y=a[1]+Math.sign(c[1]-a[1])*s;r(x-2,y-2,4,4,'#503010');r(x-1,y-1,2,2,'#F8D070');r(x-1,y-1,1,1,'#F8F8E8');}}}
+const scrCol=st=>st=='ok'?'#48D880':(st=='fail'?'#E05050':(st=='idle'?'#78A8D8':'#48B8F0'));
+function bigLaptop(x,y,st){ob(x-8,y-23,16,15,'#404058');r(x-7,y-22,14,12,scrCol(st));r(x-6,y-21,4,1,'#F8F8F8');r(x-6,y-20,2,1,'#F8F8F8');
+ if(st=='ok'){r(x-3,y-15,2,2,'#F8F8F8');r(x-1,y-14,2,2,'#F8F8F8');r(x+1,y-16,2,2,'#F8F8F8');r(x+3,y-18,2,2,'#F8F8F8');}
+ else if(st=='fail'){for(let i=0;i<6;i++){r(x-3+i,y-19+i,1,1,'#F8F8F8');r(x+2-i,y-19+i,1,1,'#F8F8F8');}}
  else{r(x-2,y-17,5,4,'#F8D830');r(x-1,y-19,3,1,D);r(x-2,y-18,1,1,D);r(x+2,y-18,1,1,D);r(x,y-16,1,2,D);}
- ob(x-10,y-7,20,4,'#B8B8C8');r(x-9,y-6,18,1,'#8888A0');r(x-9,y-4,18,1,'#9898A8');
+ ob(x-10,y-7,20,4,'#B8B8C8');r(x-9,y-6,18,1,'#8888A0');r(x-9,y-4,18,1,'#9898A8');}
+function smallLaptop(x,y,st){ob(x-6,y-15,12,9,'#404058');r(x-5,y-14,10,7,scrCol(st));r(x-4,y-13,3,1,'#F8F8F8');
+ if(st=='ok'){[[-3,-10],[-2,-9],[-1,-10],[0,-11],[1,-12],[2,-13]].forEach(([a,b2])=>r(x+a,y+b2,1,1,'#F8F8F8'));}
+ else if(st=='fail'){for(let i=0;i<4;i++){r(x-2+i,y-13+i,1,1,'#F8F8F8');r(x+1-i,y-13+i,1,1,'#F8F8F8');}}
+ else{r(x-1,y-11,3,2,'#F8D830');r(x-1,y-13,3,1,D);r(x-1,y-12,1,1,D);r(x+1,y-12,1,1,D);}
+ ob(x-8,y-5,16,3,'#B8B8C8');r(x-7,y-4,14,1,'#8888A0');}
+function smallPad(x,y){r(x-7,y-2,14,5,D);r(x-6,y-1,12,3,'#F8C830');r(x-4,y-1,5,1,'#F8F0A0');r(x-5,y+1,10,1,'#C08010');}
+function devices(){
+ const w12=WORLD==='1-2',st=authed?'ok':(failed?'fail':'wait');
+ if(unlocked)goldDots(PATHS.NW);
+ for(const k in NODES){if(k=='C'||k=='L'||k=='B'||k=='P')continue;const[x,y]=NODES[k];pad(x,y,(k=='W'&&!unlocked)||k=='I');}
+ let[x,y]=NODES.S;bigLaptop(x,y,WORLD==='1-1'?st:'idle');
+ if(unlocked){[x,y]=NODES.L;smallPad(x,y);smallLaptop(x,y,w12?st:'idle');}
  [x,y]=NODES.N;ob(x-13,y-18,26,5,'#E0E0E8');r(x-12,y-17,24,1,'#F8F8F8');ob(x-13,y-13,26,9,'#8080A0');r(x-13,y-13,26,1,'#A0A0B8');
- for(let i=0;i<6;i++){r(x-11+i*4,y-11,3,3,'#202030');r(x-11+i*4,y-7,2,1,i==0?(authed?C.ok:(failed?'#F83030':(clk%40<20?'#F83030':'#801818'))):(((clk>>2)+i*3)%7?'#F8B800':'#604000'));}
+ for(let i=0;i<6;i++){r(x-11+i*4,y-11,3,3,'#202030');r(x-11+i*4,y-7,2,1,i==0?(WORLD==='1-1'?(authed?C.ok:(failed?'#F83030':(clk%40<20?'#F83030':'#801818'))):C.ok):(((clk>>2)+i*3)%7?'#F8B800':'#604000'));}
  [x,y]=NODES.R;r(x-8,y-21,16,1,D);r(x-10,y-20,20,12,D);r(x-8,y-8,16,1,D);r(x-8,y-20,16,1,'#88C8F8');r(x-9,y-19,18,3,'#68B0F0');r(x-8,y-16,16,1,'#68B0F0');r(x-9,y-15,18,6,'#2858C0');r(x-8,y-9,16,1,'#183890');r(x-8,y-15,1,5,'#4878D8');
  r(x-6,y-18,13,1,'#F8F8F8');r(x,y-20,1,5,'#F8F8F8');r(x-5,y-19,1,3,'#F8F8F8');r(x+5,y-19,1,3,'#F8F8F8');
  [x,y]=NODES.F;ob(x-13,y-25,26,3,'#F89050');ob(x-13,y-22,26,16,'#C84818');
@@ -571,17 +877,18 @@ function devices(){
  for(let i=0;i<6;i++){const yy=y-32+i*5;r(x-8,yy,15,4,'#585878');r(x-7,yy+1,8,1,'#8080A8');r(x+3,yy+1,1,1,((clk>>3)+i)%3?'#30D058':'#186828');r(x+5,yy+1,1,1,((clk>>4)+i*2)%4?'#F8B800':'#604000');}
  r(x-11,y-39,22,2,'#FFFFFF');r(x-9,y-40,8,1,'#FFFFFF');r(x+3,y-40,5,1,'#FFFFFF');for(let i=-9;i<10;i+=3)r(x+i,y-37,1,1+((i+12)%3),'#D8F0FC');
  [x,y]=NODES.W;ob(x-8,y-9,16,4,'#C8C8D0');r(x-7,y-9,14,1,'#E8E8F0');r(x-6,y-19,2,10,'#787880');r(x+4,y-19,2,10,'#787880');r(x-6,y-20,2,1,'#A8F0F8');r(x+4,y-20,2,1,'#A8F0F8');
+ if(unlocked)r(x+3,y-7,3,1,WORLD==='1-2'?(authed?'#30D058':(failed?'#F83030':(clk%30<15?'#F8B800':'#604000'))):'#686878');
  [x,y]=NODES.I;for(let dy=-8;dy<=8;dy++)for(let dx=-8;dx<=8;dx++){const d2=dx*dx+dy*dy;if(d2<=64)r(x+dx,y-12+dy,1,1,d2>49?D:((dx==0||dy==0||Math.abs(d2-20)<4)?'#686878':'#A8A8B8'));}
- for(const k of['W','I','C']){[x,y]=NODES[k];if(k=='C')y+=cloudBob();ob(x+6,y-8,7,6,'#D8B030');r(x+7,y-11,5,1,D);r(x+7,y-11,1,3,D);r(x+11,y-11,1,3,D);r(x+9,y-6,1,2,D);}
+ if(unlocked3){w13cable();branchIsland();radsecProxy();}
+ for(const k of['W','I','C']){if(k=='W'&&unlocked)continue;[x,y]=NODES[k];if(k=='C')y+=cloudBob();ob(x+6,y-8,7,6,'#D8B030');r(x+7,y-11,5,1,D);r(x+7,y-11,1,3,D);r(x+11,y-11,1,3,D);r(x+9,y-6,1,2,D);}
 }
-const NODEBOX={S:[-11,-25,22,30],N:[-14,-20,28,25],R:[-11,-22,22,27],F:[-14,-30,28,35],A:[-11,-41,22,46],W:[-11,-21,26,26],I:[-11,-21,26,26],C:[-24,-14,48,26]};
+const NODEBOX={S:[-11,-25,22,30],N:[-14,-20,28,25],R:[-11,-22,22,27],F:[-14,-30,28,35],A:[-11,-41,22,46],W:[-11,-21,26,26],I:[-11,-21,26,26],C:[-24,-14,48,26],L:[-9,-17,18,22],B:[-17,-14,34,20],P:[-11,-17,22,21]};
 function selection(){if(sel.kind!=='node')return;const k=sel.id,[x,y]=NODES[k],bx=NODEBOX[k],o=(clk>>3)%2,x0=x+bx[0]-o,y0=y+bx[1]-o,x1=x+bx[0]+bx[2]+o,y1=y+bx[1]+bx[3]+o,c='#F8D830';
  [[x0,y0,1,1],[x1-3,y0,1,-1],[x0,y1-1,-1,1],[x1-3,y1-1,-1,-1]].forEach(([px,py,a,bb])=>{r(px,py,4,1,c);r(a>0?px:px+3,bb>0?py:py-3,1,4,c);});}
 function label(t,cx,cy,lock){g.font='10px "Press Start 2P"';const w=g.measureText(t).width+12,x=Math.min(Math.max(cx*P-w/2,6),674-w),y=cy*P;g.fillStyle='#181848';g.fillRect(x-3,y-3,w+6,22);g.fillStyle=lock?'#A0A0B0':'#F8F8F8';g.fillRect(x,y,w,16);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,x+w/2,y+13);}
-function labels(){label('Supplicant',44,146);label('NAD',110,146);label('Router',170,101);label('Firewall',230,101);label('ISE (RADIUS)',292,6);label('Wi-Fi AP',56,48,1);label('Internet',292,162,1);
- g.font='10px "Press Start 2P"';g.fillStyle='#F8F8F8';g.textAlign='center';g.fillText('DMZ',292*P,(FY0-15)*P-1);
+function labels(){label('Supplicant',44,146);label('NAD',110,146);label('Router',170,101);label('Firewall',230,101);label('ISE (RADIUS)',292,6);label('Wi-Fi AP',56,48,!unlocked);if(unlocked)label('Client',35,101);if(unlocked3){label('RadSec proxy',262,168);label('Branch',245,186);label('Internet',302,150,0);}else label('Internet',292,162,1);
  board(239,130,['Dino','World','DMZ'],0);board(318,80,['DC ISE','World'],1);}
-function banner(){g.font='10px "Press Start 2P"';g.fillStyle='#181848';g.fillRect(8,8,300,30);g.fillStyle='#F8F8F8';g.fillRect(11,11,294,24);g.fillStyle='#181848';g.fillRect(14,14,288,18);g.fillStyle='#F8D830';g.textAlign='left';g.fillText('World 1-1  802.1X EAP-TLS',22,28);}
+function banner(){g.font='10px "Press Start 2P"';g.fillStyle='#181848';g.fillRect(8,8,300,30);g.fillStyle='#F8F8F8';g.fillRect(11,11,294,24);g.fillStyle='#181848';g.fillRect(14,14,288,18);g.fillStyle='#F8D830';g.textAlign='left';g.fillText(WORLDS[WORLD].banner,22,28);}
 /* cloud access world */
 const CLOUD=[];(()=>{const bl=[[-20,4,8],[-9,-1,11],[5,-4,12],[18,1,10],[28,5,7],[-28,6,6],[0,5,12]];const ins=(x,y)=>bl.some(([a,c,rd])=>((x-a)/1.25)**2+(y-c)**2<=rd*rd);
  for(let y=-18;y<=14;y++)for(let x=-44;x<=44;x++){if(!ins(x,y))continue;const edge=!ins(x+1,y)||!ins(x-1,y)||!ins(x,y+1)||!ins(x,y-1);let c=edge?'#4E5C9C':(y>6?'#C4D2F4':(y>3?'#E2EAFC':'#FFFFFF'));if(!edge&&y<-6&&x<0&&ins(x-2,y-2)&&!ins(x-3,y-4))c='#FFFFFF';CLOUD.push([x,y,c]);}})();
@@ -601,8 +908,8 @@ function burst(x,y,kind){const pa=pick(PAL),pb=pick(PAL);flashes.push({x,y,t:0})
  else{for(let i=0;i<56;i++){const a=Math.random()*Math.PI*2,sp=0.35+Math.random()*1.05;add(Math.cos(a)*sp,Math.sin(a)*sp*0.85,52+Math.floor(Math.random()*26),i%4?pa:pb);}}}
 function launch(x,ty){rockets.push({x,y:150,ty,vx:(Math.random()-.5)*0.25,kind:pick(['peony','peony','ring','willow','crossette'])});}
 function fireworks(){
- if(celebrate>0){celebrate--;if(celebrate%13==0&&celebrate>70)launch(14+Math.random()*190,44+Math.random()*70);
-  if(celebrate==60){for(let i=0;i<4;i++)launch(30+i*42+Math.random()*10,52+Math.random()*30);}}
+ if(celebrate>0){celebrate--;const cxb=NODES[WORLDS[WORLD].auth][0];if(celebrate%13==0&&celebrate>70)launch(cxb-45+Math.random()*90,44+Math.random()*70);
+  if(celebrate==60){for(let i=0;i<4;i++)launch(cxb-60+i*30+Math.random()*10,52+Math.random()*30);}}
  for(let i=rockets.length-1;i>=0;i--){const k=rockets[i];k.y-=1.8;k.x+=k.vx;const rx=Math.round(k.x),ry=Math.round(k.y);r(rx,ry,1,2,'#FFFFFF');r(rx,ry+2,1,2,'#FFE070');r(rx,ry+4,1,2,'rgba(255,160,40,0.6)');if(clk%2)r(rx+(Math.random()<.5?-1:1),ry+3+Math.floor(Math.random()*4),1,1,'#FFD23A');if(k.y<=k.ty){burst(k.x,k.y,k.kind);rockets.splice(i,1);}}
  for(let i=flashes.length-1;i>=0;i--){const f=flashes[i];f.t++;const rad=3+f.t*1.4,al=Math.max(0,0.5-f.t*0.07);if(al<=0){flashes.splice(i,1);continue;}g.fillStyle='rgba(255,250,220,'+al.toFixed(2)+')';for(let dy=-rad;dy<=rad;dy++){const hw=Math.round(Math.sqrt(Math.max(0,rad*rad-dy*dy)));g.fillRect((f.x-hw)*P,(f.y+dy)*P,hw*2*P,P);}}
  for(let i=sparks.length-1;i>=0;i--){const p=sparks[i];p.tr.unshift([p.x,p.y]);if(p.tr.length>4)p.tr.pop();p.x+=p.vx;p.y+=p.vy;p.vy+=p.g||0.02;const dr=p.drag||0.97;p.vx*=dr;p.vy*=dr;p.l--;
@@ -611,7 +918,7 @@ function fireworks(){
   if(p.glit&&f<0.6&&Math.random()<0.35){r(Math.round(p.x),Math.round(p.y),1,1,'#FFFFFF');continue;}
   p.tr.forEach((t,j)=>{g.globalAlpha=(0.55-j*0.13)*Math.min(1,f*1.5);r(Math.round(t[0]),Math.round(t[1]),1,1,p.pal[1]);});g.globalAlpha=1;
   const sz=f>0.7?2:1;r(Math.round(p.x)-(sz>1?0:0),Math.round(p.y),sz,sz,col);}
- if(celebText>0){celebText--;const[x,y]=NODES.N,t='PORT OPEN!';g.font='10px "Press Start 2P"';const w=g.measureText(t).width+14,px=x*P-w/2,py=(y-40)*P+((celebText>>3)%2);g.fillStyle='#181848';g.fillRect(px-3,py-3,w+6,24);g.fillStyle=FWC2[(clk>>3)%FWC2.length];g.fillRect(px,py,w,18);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,x*P,py+14);}}
+ if(celebText>0){celebText--;const wd=WORLDS[WORLD],[x,y]=NODES[wd.auth],t=wd.celeb;g.font='10px "Press Start 2P"';const w=g.measureText(t).width+14,px=x*P-w/2,py=(y-wd.celebDy)*P+((celebText>>3)%2);g.fillStyle='#181848';g.fillRect(px-3,py-3,w+6,24);g.fillStyle=FWC2[(clk>>3)%FWC2.length];g.fillRect(px,py,w,18);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,x*P,py+14);}}
 const FWC2=['#5CFF6E','#FFD23A','#3AE0FF','#FF6EF0'];
 /* sea life: dolphins, or sharks during a storm */
 const DOL=[[64,34,0],[100,31,190],[128,38,360],[82,42,95]];
@@ -636,7 +943,7 @@ function seaLife(){
   if(t>=74&&t<120){const rr=(t-74)*0.25;g.fillStyle='rgba(230,245,255,'+(0.6-(t-74)/80).toFixed(2)+')';for(let a=0;a<6.28;a+=0.4)g.fillRect(Math.round(x0+18+Math.cos(a)*rr*1.6)*P,Math.round(y0+1+Math.sin(a)*rr*0.5)*P,P,P);}}}
 /* thunderstorm */
 let stormT=0;
-function storm(){if(!failed){stormT=0;return;}stormT++;const k=Math.min(1,stormT/60),[sx,sy]=NODES.S,cx=sx,cy=sy-44+Math.round(Math.sin(clk/50));
+function storm(){if(!failed){stormT=0;return;}stormT++;const k=Math.min(1,stormT/60),[sx,sy]=NODES[WORLDS[WORLD].client],cx=sx,cy=sy-44+Math.round(Math.sin(clk/50));
  g.fillStyle='rgba(16,20,56,'+(0.22*k).toFixed(3)+')';g.fillRect((sx-34)*P,(sy-58)*P,68*P,66*P);
  for(let i=0;i<34;i++){const x=cx-20+((i*11)%40)+(i%3),fall=(clk*1.6+i*17)%40,y=cy+6+fall;if(y>sy+4)continue;r(x-Math.floor(fall/12),Math.round(y),1,2,'rgba(168,200,248,'+(0.85*k).toFixed(2)+')');if(fall>36)r(x-3,sy+3,2,1,'rgba(200,220,255,0.6)');}
  for(const[x,y,c]of CLOUD){if(Math.abs(x)>34)continue;const cc=c=='#4E5C9C'?'#22263A':(c=='#C4D2F4'?'#3A4058':(c=='#E2EAFC'?'#565C78':'#6C7290'));g.fillStyle=cc;g.globalAlpha=k;g.fillRect((cx+Math.round(x*0.8))*P,(cy+Math.round(y*0.7))*P,P,P);}
@@ -653,24 +960,24 @@ const effects=[];
 function drawEffects(){for(let i=effects.length-1;i>=0;i--){const e=effects[i];e.t++;const s=Math.min(6,2+e.t/6),x=e.x,y=e.y-14;for(let j=-s;j<=s;j++){r(x+j-1,y+j-1,3,3,D);r(x+j-1,y-j-1,3,3,D);}for(let j=-s;j<=s;j++){r(x+j,y+j,1,1,'#F85050');r(x+j,y-j,1,1,'#F85050');}
  g.font='10px "Press Start 2P"';g.textAlign='center';const ty=(y-10-Math.min(e.t,30)/6)*P;g.fillStyle=D;g.fillText(e.k=='drop'?'DROP':'DISCARD',x*P+2,ty+2);g.fillStyle='#F8F8F8';g.fillText(e.k=='drop'?'DROP':'DISCARD',x*P,ty);
  if(e.t>140)effects.splice(i,1);}}
-function waiting(){if(!(steps[si]&&steps[si].wait))return;const[x,y]=NODES.N;const by=y-30;r(x-9,by-1,18,9,D);r(x-8,by,16,7,'#F8F8F8');r(x-2,by+8,3,2,D);r(x-1,by+7,1,2,'#F8F8F8');const n=1+((clk>>4)%3);for(let i=0;i<n;i++)r(x-5+i*4,by+3,2,2,D);}
+function waiting(){if(!(steps[si]&&steps[si].wait))return;const wd=WORLDS[WORLD],[x0,y0]=NODES[wd.auth],x=x0+wd.waitDx,y=y0;const by=y-wd.waitDy;r(x-9,by-1,18,9,D);r(x-8,by,16,7,'#F8F8F8');r(x-2,by+8,3,2,D);r(x-1,by+7,1,2,'#F8F8F8');const n=1+((clk>>4)%3);for(let i=0;i<n;i++)r(x-5+i*4,by+3,2,2,D);}
 
 /* ---------------- playback ---------------- */
 let scen=SCEN[0],steps=scen.steps,si=0,gi=0,d=0,hold=0,play=true,speed=1,cur=null,len=0,pkt=null,finished=false;
 const reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(reduce)play=false;
-function route(keys){let pts=[];keys.forEach(k=>{const rev=k[0]=='-',p=PATHS[k.replace('-','')].slice();if(rev)p.reverse();pts=pts.length?pts.concat(p.slice(1)):p;});return pts;}
+function route(keys){let pts=[];keys.forEach(k=>{const rev=k[0]=='-',kk=k.replace(/^[-~]/,''),p=(k[0]=='~'?AIR[kk]:PATHS[kk]).slice();if(rev)p.reverse();pts=pts.length?pts.concat(p.slice(1)):p;});return pts;}
 function setSeg(){const s=steps[si].seg[gi];cur=null;if(!s)return;cur=route(s.k);len=0;for(let i=0;i<cur.length-1;i++)len+=Math.abs(cur[i+1][0]-cur[i][0])+Math.abs(cur[i+1][1]-cur[i][1]);d=0;}
 function at(dist){let rem=dist;for(let i=0;i<cur.length-1;i++){const a=cur[i],c=cur[i+1],L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);if(rem<=L){const f=L?rem/L:0;return[a[0]+(c[0]-a[0])*f,a[1]+(c[1]-a[1])*f];}rem-=L;}return cur[cur.length-1];}
 function completeStep(){const s=steps[si];if(s.final=='ok'){authed=true;celebrate=480;celebText=420;}if(s.final=='fail')failed=true;}
 function tick(){
  const s=steps[si];pkt=null;
- if(gi<s.seg.length){const p=at(d);pkt={x:p[0],y:p[1]};packet(p[0],p[1],s.seg[gi].c);
-  if(play){d+=1.1*speed;if(d>=len){const sg=s.seg[gi];if(sg.end){const e=cur[cur.length-1];effects.push({x:e[0],y:e[1],t:0,k:sg.end});}gi++;if(gi>=s.seg.length)completeStep();else setSeg();}}}
- else if(play){hold+=speed;const lim=s.wait?140:80;if(hold>lim){if(si<steps.length-1)goStep(si+1,true);else if(!finished){finished=true;play=false;ui();}}}
+ if(gi<s.seg.length){const p=at(d);pkt={x:p[0],y:p[1]};if(s.seg[gi].air)airFx(p[0],p[1]);packet(p[0],p[1],s.seg[gi].c);if(s.seg[gi].sec)lockBadge(p[0],p[1]);
+  if(play){d+=1.1*speed*(s.seg[gi].air?0.45:1);if(d>=len){const sg=s.seg[gi];if(sg.end){const e=cur[cur.length-1];effects.push({x:e[0],y:e[1],t:0,k:sg.end});}gi++;if(gi>=s.seg.length)completeStep();else setSeg();}}}
+ else if(play){hold+=speed;const lim=s.wait?140:80;if(hold>lim){if(si<steps.length-1)goStep(si+1,true);else if(!finished){finished=true;play=false;onFinish();ui();}}}
 }
 function goStep(i,auto){si=Math.max(0,Math.min(steps.length-1,i));gi=0;hold=0;finished=false;authed=false;failed=false;effects.length=0;celebrate=0;celebText=0;rockets.length=0;sparks.length=0;flashes.length=0;
- if(!steps[si].seg.length&&steps[si].final)completeStep();setSeg();if(!auto)sel={kind:'step'};ui();}
+ if(!steps[si].seg.length&&steps[si].final)completeStep();setSeg();if(steps[si].forge)doForge(steps[si].forge);if(!auto)sel={kind:'step'};ui();}
 function setScenario(id){scen=SCEN.find(s=>s.id===id);steps=scen.steps;play=true;sel={kind:'step'};goStep(0);buildLadder();ui();}
 
 /* ---------------- camera ---------------- */
@@ -679,7 +986,7 @@ function view(){const vw=W/cam.z,vh=H/cam.z;const cx=Math.max(vw/2,Math.min(W-vw
 function updateCam(){if(follow&&pkt)camT={x:pkt.x,y:pkt.y-8,z:2};const k=reduce?1:0.1;cam.x+=(camT.x-cam.x)*k;cam.y+=(camT.y-cam.y)*k;cam.z+=(camT.z-cam.z)*k;}
 function blit(){const v=view();m.imageSmoothingEnabled=false;m.drawImage(sc,v.x0*P,v.y0*P,v.vw*P,v.vh*P,0,0,mc.width,mc.height);}
 function toGrid(e){const rc=mc.getBoundingClientRect(),v=view();return{x:v.x0+(e.clientX-rc.left)/rc.width*v.vw,y:v.y0+(e.clientY-rc.top)/rc.height*v.vh};}
-function hit(p){if(pkt&&Math.hypot(p.x-pkt.x,p.y-(pkt.y-12))<9)return{kind:'step'};for(const k in NODES){const[x,y]=NODES[k],bx=NODEBOX[k];if(p.x>=x+bx[0]&&p.x<=x+bx[0]+bx[2]&&p.y>=y+bx[1]&&p.y<=y+bx[1]+bx[3])return{kind:'node',id:k};}return null;}
+function hit(p){if(pkt&&Math.hypot(p.x-pkt.x,p.y-(pkt.y-12))<9)return{kind:'step'};for(const k in NODES){if(k=='L'&&!unlocked)continue;if((k=='B'||k=='P')&&!unlocked3)continue;const[x,y]=NODES[k],bx=NODEBOX[k];if(p.x>=x+bx[0]&&p.x<=x+bx[0]+bx[2]&&p.y>=y+bx[1]&&p.y<=y+bx[1]+bx[3])return{kind:'node',id:k};}return null;}
 mc.addEventListener('mousemove',e=>{mc.style.cursor=hit(toGrid(e))?'pointer':'default';});
 mc.addEventListener('click',e=>{const h=hit(toGrid(e));if(!h)return;if(h.kind==='step'){sel={kind:'step'};}else{sel=h;follow=false;setFollow();const[x,y]=NODES[h.id];camT={x:x,y:y-14,z:2.6};}document.getElementById('hint').hidden=true;ui();});
 function setFollow(){document.getElementById('follow').setAttribute('aria-pressed',String(follow));}
@@ -693,12 +1000,12 @@ const dl=f=>'<dl class="f">'+f.map(p=>'<dt>'+esc(p[0])+'</dt><dd>'+esc(p[1])+'</
 function nest(L,i){if(i>=L.length)return'';const x=L[i];return '<div class="layer k-'+x.k+'"><div class="lh">'+esc(x.n)+'</div>'+dl(x.f)+(x.avp?'<div class="avp"><div class="lh">Attributes (AVPs)</div>'+dl(x.avp)+'</div>':'')+nest(L,i+1)+'</div>';}
 function certHTML(c){return '<div class="cert'+(c.bad?' bad':'')+'"><div class="lh">'+esc(c.t)+'</div>'+dl(c.f)+'<ul class="checks" aria-label="'+esc(c.by)+'">'+(c.ok||[]).map(t=>'<li>'+esc(t)+'</li>').join('')+(c.x||[]).map(t=>'<li class="x">'+esc(t)+'</li>').join('')+'</ul><div class="sub" style="margin-top:6px">'+esc(c.by)+'</div></div>';}
 function inspector(){const el=document.getElementById('insp');let h='';
- if(sel.kind==='node'){const n=NODEINFO[sel.id];h='<div class="ih"><div><div class="eyebrow">Device</div><h2 style="margin-top:8px">'+esc(n.t)+'</h2><div class="sub">'+esc(n.sub)+'</div></div><button class="back" id="back">◀ Packet</button></div>';
+ if(sel.kind==='node'){const n=nodeInfo(sel.id);h='<div class="ih"><div><div class="eyebrow">Device</div><h2 style="margin-top:8px">'+esc(n.t)+'</h2><div class="sub">'+esc(n.sub)+'</div></div><button class="back" id="back">◀ Packet</button></div>';
   h+='<ul class="facts">'+n.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>';if(n.code)h+='<pre class="code">'+n.code+'</pre>';}
  else{const s=steps[si];h='<div class="ih"><div><div class="eyebrow">Message '+(si+1)+' of '+steps.length+'</div><h2 style="margin-top:8px">'+esc(s.n)+'</h2><div class="sub">'+esc(s.p)+'</div></div></div>';
   if(s.lan)h+='<div class="stackt">On the access port · EAPOL</div>'+nest(s.lan,0);
   if(s.rad)h+='<div class="stackt">Across the network · RADIUS</div>'+nest(s.rad,0);
-  if(!s.lan&&!s.rad)h+='<div class="sub">No packet on the wire. The NAD is waiting for a reply that never arrives.</div>';
+  if(s.st)s.st.forEach(x=>{h+='<div class="stackt">'+esc(x.t)+'</div>'+nest(x.L,0);});if(!s.lan&&!s.rad&&!s.st)h+='<div class="sub">'+esc(s.none||'No packet on the wire. The NAD is waiting for a reply that never arrives.')+'</div>';if(s.keys)h+=keysHTML(s.keys);
   if(s.cert)h+=certHTML(s.cert);
   if(s.tip)h+='<div class="tip"><b>Why it matters</b>'+esc(s.tip)+'</div>';}
  el.innerHTML=h;const bk=document.getElementById('back');if(bk)bk.onclick=()=>{sel={kind:'step'};camT={x:170,y:100,z:1};ui();};}
@@ -710,15 +1017,15 @@ function ui(){const s=steps[si];
  document.querySelectorAll('#scen button').forEach(bn=>bn.setAttribute('aria-pressed',String(bn.dataset.id===scen.id)));
  document.querySelectorAll('#ladder .row').forEach((rw,i)=>{rw.classList.toggle('cur',i===si);rw.classList.toggle('done',i<si);rw.setAttribute('aria-current',i===si?'step':'false');});
  inspector();}
-const LANEX={S:1/6,N:3/6,F:4.1/6,A:5/6};
-function trackHTML(s){if(!s.lane||s.lane.length<2)return '<div class="track"><div class="ln" style="left:16.6%"></div><div class="ln" style="left:50%"></div><div class="ln" style="left:83.3%"></div><span class="xx" style="left:calc(50% + 8px)">…</span></div>';
+let LANEX=WORLDS['1-1'].lanex;
+function trackHTML(s){const LN='<div class="ln" style="left:16.6%"></div><div class="ln" style="left:50%"></div><div class="ln" style="left:83.3%"></div>';if(!s.lane||s.lane.length<2)return '<div class="track">'+LN+'<span class="xx" style="left:calc(50% + 8px)">…</span></div>';
  const a=LANEX[s.lane[0]],z=LANEX[s.lane[s.lane.length-1]],col=s.seg.length?s.seg[s.seg.length-1].c:C.fail,lo=Math.min(a,z)*100,hi=Math.max(a,z)*100,right=z>a,cut=s.seg.some(x=>x.end);
- let h='<div class="track"><div class="ln" style="left:16.6%"></div><div class="ln" style="left:50%"></div><div class="ln" style="left:83.3%"></div>';
- h+='<div class="ar" style="left:'+lo+'%;width:'+(hi-lo)+'%;background:'+col+'"></div>';
- if(cut)h+='<span class="xx" style="left:calc('+(z*100)+'% - 6px)">✕</span>';
- else h+='<div class="hd" style="left:'+(right?'calc('+hi+'% - 8px)':lo+'%')+';'+(right?'border-left:9px solid '+col:'border-right:9px solid '+col)+'"></div>';
+ const hR='<div class="hd" style="left:calc('+hi+'% - 8px);border-left:9px solid '+col+'"></div>',hL='<div class="hd" style="left:'+lo+'%;border-right:9px solid '+col+'"></div>';
+ let h='<div class="track">'+LN+'<div class="ar" style="left:'+lo+'%;width:'+(hi-lo)+'%;background:'+col+'"></div>';
+ if(cut&&!s.xat)h+='<span class="xx" style="left:calc('+(z*100)+'% - 6px)">✕</span>';
+ else{h+=right?hR:hL;if(s.both)h+=right?hL:hR;if(s.xat)h+='<span class="xx" style="left:calc('+(LANEX[s.xat]*100)+'% - 6px)">✕</span>';}
  return h+'</div>';}
-function buildLadder(){const el=document.getElementById('ladder');let h='<div class="lanehead"></div><div class="lanehead">Message</div><div class="lanehead lanes3"><span>Laptop</span><span>NAD</span><span>ISE</span></div>';
+function buildLadder(){const el=document.getElementById('ladder');let h='<div class="lanehead"></div><div class="lanehead">Message</div><div class="lanehead lanes3">'+WORLDS[WORLD].lanes.map(n=>'<span>'+esc(n)+'</span>').join('')+'</div>';
  steps.forEach((s,i)=>{h+='<div class="row" role="button" tabindex="0" data-i="'+i+'"><div class="num">'+(i+1)+'</div><div class="nm">'+esc(s.n)+'</div><div>'+trackHTML(s)+'</div></div>';});
  el.innerHTML=h;el.querySelectorAll('.row').forEach(rw=>{const go=()=>{play=true;goStep(+rw.dataset.i);document.getElementById('map').scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});};rw.onclick=go;rw.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};});}
 function buildScen(){const el=document.getElementById('scen');el.innerHTML=SCEN.map(s=>'<button data-id="'+s.id+'" class="'+(s.bad?'bad':'')+'">'+esc(s.n)+'</button>').join('');el.querySelectorAll('button').forEach(bn=>bn.onclick=()=>setScenario(bn.dataset.id));}
@@ -735,9 +1042,92 @@ let score=0,answered=0;
 function buildQuiz(){const el=document.getElementById('quiz');el.innerHTML=QUIZ.map((q,i)=>'<div class="win q" data-q="'+i+'"><div class="qn">Question '+(i+1)+'</div><h3>'+esc(q.q)+'</h3><div class="opts">'+q.o.map((o,j)=>'<button data-j="'+j+'">'+esc(o)+'</button>').join('')+'</div><p class="fb" hidden></p></div>').join('');
  el.querySelectorAll('.q').forEach(card=>{const q=QUIZ[+card.dataset.q];card.querySelectorAll('.opts button').forEach(bn=>bn.onclick=()=>{if(card.dataset.done)return;card.dataset.done=1;const j=+bn.dataset.j,ok=j===q.a;bn.classList.add(ok?'right':'wrong');if(!ok)card.querySelector('[data-j="'+q.a+'"]').classList.add('right');const fb=card.querySelector('.fb');fb.hidden=false;fb.textContent=(ok?'Correct. ':'Not quite. ')+q.e;answered++;if(ok)score++;document.getElementById('score').textContent='Score '+score+' / '+answered;});});}
 
+/* ---------------- worlds, unlock, Wi-Fi helpers ---------------- */
+function airFx(x,y){for(let k=0;k<2;k++){const rr=4+((clk*0.3+k*5)%10),al=Math.max(0,0.75-rr/16);g.fillStyle='rgba(200,245,255,'+al.toFixed(2)+')';for(let a=0;a<6.28;a+=0.45)g.fillRect(Math.round(x+Math.cos(a)*rr)*P,Math.round(y-12+Math.sin(a)*rr*0.75)*P,P,P);}}
+function nodeInfo(k){if(WORLD==='1-2'&&INFO12[k])return INFO12[k];if(unlocked&&(k==='W'||k==='L'))return INFO12[k];return NODEINFO[k];}
+function keysHTML(k){const ch=a=>a.length?a.map(c=>'<span class="chip'+(c[1]?' new':'')+'">'+esc(c[0])+'</span>').join(''):'<span class="chip none">No keys yet</span>';
+ return '<div class="keys"><div class="lh">Keys held · highlighted keys are new</div><div class="kc"><div><div class="kh">Laptop</div><div class="chips">'+ch(k.c)+'</div></div><div><div class="kh">AP</div><div class="chips">'+ch(k.a)+'</div></div></div>'+(k.note?'<p class="kn">'+esc(k.note)+'</p>':'')+'</div>';}
+function renderHeader(){const w=WORLDS[WORLD];document.getElementById('eyebrow').textContent=w.eyebrow;document.getElementById('intro').textContent=w.intro;
+ document.getElementById('legend').innerHTML=w.legend.map(l=>'<span><i style="background:'+l[0]+'"></i>'+esc(l[1])+'</span>').join('');}
+function renderWorlds(){const el=document.getElementById('worlds');el.innerHTML=[['1-1','World 1-1 · Wired'],['1-2','World 1-2 · Wi-Fi']].map(([id,n])=>{const lk=id==='1-2'&&!unlocked;return '<button data-w="'+id+'" class="'+(lk?'locked':'')+'" aria-pressed="'+(WORLD===id)+'">'+n+(lk?' <span class="lk">Locked</span>':'')+'</button>';}).join('');
+ el.querySelectorAll('button').forEach(bn=>bn.onclick=()=>setWorld(bn.dataset.w));}
+const EPS=[
+ {id:'1-1',t:'1-1 · Wired 802.1X with EAP-TLS',z:'Grasslands → Router lake → Firewall → DC ISE World',p:'EAPOL, RADIUS encapsulation, the mutual TLS handshake, certificate checks, VLAN assignment and four ways it fails.'},
+ {id:'1-2',t:'1-2 · Wi-Fi: EAP-TLS and the 4-way handshake',z:'Desert RF World',p:'Beacons and association, EAP-TLS over the air, how the Access-Accept hands the AP its PMK, and the 4-way handshake that creates the encryption keys.',lock:'Finish any World 1-1 journey to unlock.'},
+ {id:'1-3',t:'1-3 · RadSec across the Internet',z:'Dino World DMZ',p:'A mutually authenticated TLS tunnel on TCP 2083 to a DMZ proxy, RADIUS carried safely inside it, and the Blast-RADIUS forgery (CVE-2024-3596) that plain UDP RADIUS allows.',lock:'Finish any World 1-2 journey to unlock.'},
+ {t:'1-4 · ??? from the lake',z:'Router lake',p:'Something surfaces mid-session and changes a port’s access without the user reconnecting. Hint: UDP 1700 and 3799.'},
+ {t:'1-5 · Cloud Access World',z:'The cloud over the northern sea',p:'Coming soon. Authentication and access from the cloud side of the network.'}];
+function renderEpisodes(){const el=document.getElementById('eps');el.innerHTML=EPS.map(e=>{const av=!!e.id&&(e.id==='1-1'||unlocked),now=e.id===WORLD,cls=now?'now':(av?'avail':'locked'),tag=now?'Now playing':(av?'Unlocked':'Locked');
+  return '<div class="win ep '+cls+'"><span class="tag">'+tag+'</span><h3>'+esc(e.t)+'</h3><p class="zone">'+esc(e.z)+'</p><p>'+esc(e.p)+'</p>'+(av&&!now?'<button class="play" data-w="'+e.id+'">Play World '+e.id+' ▶</button>':'')+(e.lock&&!av?'<p class="req">'+esc(e.lock)+'</p>':'')+'</div>';}).join('');
+ el.querySelectorAll('.play').forEach(bn=>bn.onclick=()=>setWorld(bn.dataset.w,true));}
+function showUnlock(kind){const el=document.getElementById('unlock');
+ if(kind==='new'){el.className='unlock';el.innerHTML='<p><b>World 1-2 unlocked</b>Wi-Fi in Desert RF World: beacons, EAP-TLS over the air and the 4-way handshake.</p><button id="go12">Play World 1-2 ▶</button>';el.hidden=false;document.getElementById('go12').onclick=()=>setWorld('1-2');}
+ else if(kind==='locked'){el.className='unlock lockedmsg';el.innerHTML='<p><b>World 1-2 is locked</b>Finish any journey in World 1-1 to unlock it. Stepping through to the end with Next counts too.</p>';el.hidden=false;}
+ else el.hidden=true;}
+function setWorld(id,scroll){if(id==='1-2'&&!unlocked){showUnlock('locked');return;}
+ WORLD=id;const w=WORLDS[id];SCEN=w.scen;QUIZ=w.quiz;LANEX=w.lanex;scen=SCEN[0];steps=scen.steps;play=!reduce;sel={kind:'step'};follow=false;setFollow();camT={x:170,y:100,z:1};
+ score=0;answered=0;document.getElementById('score').textContent='';stormT=0;
+ showUnlock(null);renderHeader();renderWorlds();renderEpisodes();buildScen();buildLadder();buildQuiz();goStep(0);
+ if(scroll)document.getElementById('map').scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});}
+function onFinish(){if(WORLD==='1-1'&&!unlocked)doUnlock();}
+function doUnlock(){unlocked=true;try{localStorage.setItem('netsecworld.w12','1');}catch(e){}unlockFx=560;burst(56,62,'ring');burst(48,56,'peony');renderWorlds();renderEpisodes();showUnlock('new');}
+function drawUnlock(){if(unlockFx<=0)return;unlockFx--;if(unlockFx>160&&unlockFx%55==0)burst(30+Math.random()*52,50+Math.random()*18,pick(['ring','peony','crossette']));
+ const[x,y]=NODES.W,t='WORLD 1-2 UNLOCKED!';g.font='10px "Press Start 2P"';const w=g.measureText(t).width+14,px=Math.max(6,x*P-w/2),py=(y-46)*P+((unlockFx>>3)%2);
+ g.fillStyle='#181848';g.fillRect(px-3,py-3,w+6,24);g.fillStyle=FWC2[(clk>>3)%FWC2.length];g.fillRect(px,py,w,18);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,px+w/2,py+14);}
+
+/* ---------------- World 1-3 drawing ---------------- */
+const BRANCH_ISL=[];(()=>{const ins=(x,y)=>((x)/16)**2+((y)/8)**2<=1;for(let y=-9;y<=9;y++)for(let x=-17;x<=17;x++){if(!ins(x,y))continue;const edge=!ins(x+1,y)||!ins(x-1,y)||!ins(x,y+1)||!ins(x,y+2);let c;if(y>5)c='#C8A05C';else if(edge)c='#C8A05C';else c=((x*3+y*5)%11==0)?'#30A030':'#42B342';if(y<=5&&(x< -12))c='#E0C080';BRANCH_ISL.push([x,y,c]);}})();
+function branchIsland(){const[cx,cy]=NODES.B,st=WORLD==='1-3'?(authed?'ok':(failed?'fail':'idle')):'idle';
+ for(const[x,y,c]of BRANCH_ISL){r(cx+x,cy+y,1,1,c);}
+ const bx=cx-2,by=cy-3;ob(bx-5,by-7,11,7,'#8894B0');r(bx-4,by-6,9,5,'#5A6788');for(let i=0;i<3;i++)r(bx-3+i*3,by-5,2,2,authed&&WORLD==='1-3'?'#48D880':'#38507A');
+ r(bx+2,by-12,1,5,'#C0C0C8');r(bx+2,by-13,1,1,(WORLD==='1-3'&&clk%30<15)?'#F85050':'#884040');
+ if(WORLD==='1-3'&&!failed)for(let k=0;k<2;k++){const rr=3+((clk*0.3+k*4)%8),al=Math.max(0,0.7-rr/12);g.fillStyle='rgba(120,230,255,'+al.toFixed(2)+')';for(let a=-2.3;a<-0.8;a+=0.5)g.fillRect(Math.round(bx+2+Math.cos(a)*rr)*P,Math.round(by-13+Math.sin(a)*rr*0.7)*P,P,P);}}
+function radsecProxy(){const[x,y]=NODES.P,act=WORLD==='1-3',on=act&&authed,bad=act&&failed;
+ r(x-9,y+2,19,2,'rgba(0,0,0,0.3)');ob(x-9,y-15,18,17,'#2C3350');r(x-8,y-15,16,1,'#4A5680');
+ r(x-7,y-13,4,1,on?'#30D058':bad?'#F83030':'#12B5A6');r(x+3,y-13,4,1,((clk>>3)%3)?'#F8B800':'#604000');r(x-7,y-1,15,1,'#1A2038');
+ const lc=bad?'#F86060':(on?'#44E070':'#16C8B6');
+ r(x-2,y-11,1,2,'#D8F4EE');r(x+1,y-11,1,2,'#D8F4EE');r(x-1,y-12,2,1,'#D8F4EE');r(x-2,y-10,4,1,'#D8F4EE');
+ r(x-4,y-9,8,8,'#0A4A44');r(x-3,y-8,6,6,lc);r(x-1,y-6,2,3,'#073029');}
+function w13cable(){const pts=PATHS.BP;g.fillStyle='rgba(16,40,70,0.5)';for(let i=0;i<pts.length-1;i++){const a=pts[i],c=pts[i+1],L=Math.abs(c[0]-a[0])+Math.abs(c[1]-a[1]);for(let s=0;s<L;s+=2){const x=a[0]+Math.sign(c[0]-a[0])*s,y=a[1]+Math.sign(c[1]-a[1])*s;g.fillRect(x*P,y*P,P,P);}}}
+let forgeFx=0,forgeKind='';
+function doForge(kind){forgeFx=120;forgeKind=kind;}
+function drawForge(){if(forgeFx<=0)return;forgeFx--;const[ix,iy]=[270,134];
+ const bob=Math.round(Math.sin(clk/5)*1.5);const rx=ix,ry=iy-14+bob,dir=1;const q=(dx,dy,w,h,c)=>r(rx+dx,ry+dy,w,h,c);
+ q(-9,-7,5,3,D);q(-8,-6,4,1,'#C83030');q(-5,-8,9,5,D);q(-4,-7,7,3,'#E84040');q(-3,-7,5,1,'#F87878');q(3,-11,7,5,D);q(4,-10,5,3,'#E84040');q(7,-10,1,1,D);q(6,-8,3,1,'#F8F0E0');q(7,-9,1,1,'#F8F030');q(-2,-3,2,3,D);q(1,-3,2,3,D);
+ g.font='10px "Press Start 2P"';g.textAlign='center';const t=forgeKind==='inject'?'TAMPERED':(forgeKind==='accept'?'FORGED!':'INTERCEPTED');const ty=(iy-20-((120-forgeFx)>>3))*P;
+ g.fillStyle='#181848';g.fillText(t,ix*P+1,ty+1);g.fillStyle=forgeKind==='accept'?'#F85050':'#F8D830';g.fillText(t,ix*P,ty);}
+function lockBadge(x,y){x=Math.round(x);y=Math.round(y)-22-(Math.floor(clk/8)%2);r(x-2,y-1,5,4,'#F8D830');r(x-2,y-1,5,1,'#C89810');r(x-1,y-4,1,1,D);r(x-2,y-3,1,2,D);r(x+2,y-3,1,2,D);r(x,y+1,1,1,D);}
+
+/* ---------------- generalised unlock chain ---------------- */
+function unlockState(id){return id==='1-2'?unlocked:(id==='1-3'?unlocked3:true);}
+function onFinish(){if(WORLD==='1-1'&&!unlocked)doUnlock('1-2');else if(WORLD==='1-2'&&!unlocked3)doUnlock('1-3');}
+function doUnlock(id){if(id==='1-2'){unlocked=true;try{localStorage.setItem('netsecworld.w12','1');}catch(e){}unlockFx=560;unlockWorld='1-2';burst(56,62,'ring');burst(48,56,'peony');}
+ else{unlocked3=true;try{localStorage.setItem('netsecworld.w13','1');}catch(e){}unlockFx=560;unlockWorld='1-3';burst(272,120,'ring');burst(256,110,'peony');}
+ renderWorlds();renderEpisodes();showUnlock('new',id);}
+function drawUnlock(){if(unlockFx<=0)return;unlockFx--;const w=unlockWorld;const cx=w==='1-2'?41:255;
+ if(unlockFx>160&&unlockFx%55==0)burst(cx-15+Math.random()*52,(w==='1-2'?50:108)+Math.random()*18,pick(['ring','peony','crossette']));
+ const[x,y]=w==='1-2'?NODES.W:NODES.P,t='WORLD '+w+' UNLOCKED!';g.font='10px "Press Start 2P"';const ww=g.measureText(t).width+14,px=Math.min(Math.max(6,x*P-ww/2),mc.width-ww-6),py=(y-(w==='1-2'?46:22))*P+((unlockFx>>3)%2);
+ g.fillStyle='#181848';g.fillRect(px-3,py-3,ww+6,24);g.fillStyle=FWC2[(clk>>3)%FWC2.length];g.fillRect(px,py,ww,18);g.fillStyle='#181848';g.textAlign='center';g.fillText(t,px+ww/2,py+14);}
+/* overrides for 3 worlds */
+function nodeInfo(k){if(WORLD==='1-3'&&INFO13[k])return INFO13[k];if(unlocked3&&(k==='B'||k==='P'))return INFO13[k];if(WORLD==='1-2'&&INFO12[k])return INFO12[k];if(unlocked&&(k==='W'||k==='L'))return INFO12[k];return NODEINFO[k]||INFO13[k]||INFO12[k]||{t:k,sub:'',facts:[],code:''};}
+function renderWorlds(){const el=document.getElementById('worlds');el.innerHTML=[['1-1','1-1 · Wired'],['1-2','1-2 · Wi-Fi'],['1-3','1-3 · RadSec']].map(([id,n])=>{const lk=!unlockState(id);return '<button data-w="'+id+'" class="'+(lk?'locked':'')+'" aria-pressed="'+(WORLD===id)+'">'+n+(lk?' <span class="lk">Locked</span>':'')+'</button>';}).join('');
+ el.querySelectorAll('button').forEach(bn=>bn.onclick=()=>setWorld(bn.dataset.w));}
+function renderEpisodes(){const el=document.getElementById('eps');el.innerHTML=EPS.map(e=>{const av=!!e.id&&unlockState(e.id),now=e.id===WORLD,cls=now?'now':(av?'avail':'locked'),tag=now?'Now playing':(av?'Unlocked':'Locked');
+  return '<div class="win ep '+cls+'"><span class="tag">'+tag+'</span><h3>'+esc(e.t)+'</h3><p class="zone">'+esc(e.z)+'</p><p>'+esc(e.p)+'</p>'+(av&&!now?'<button class="play" data-w="'+e.id+'">Play World '+e.id+' ▶</button>':'')+(e.lock&&!av?'<p class="req">'+esc(e.lock)+'</p>':'')+'</div>';}).join('');
+ el.querySelectorAll('.play').forEach(bn=>bn.onclick=()=>setWorld(bn.dataset.w,true));}
+function showUnlock(kind,id){const el=document.getElementById('unlock');
+ if(kind==='new'){const n=id==='1-2'?['World 1-2 unlocked','Wi-Fi in Desert RF World: beacons, EAP-TLS over the air and the 4-way handshake.']:['World 1-3 unlocked','RadSec across the Internet: a mutually authenticated TLS tunnel, and the Blast-RADIUS attack it prevents.'];
+  el.className='unlock';el.innerHTML='<p><b>'+n[0]+'</b>'+n[1]+'</p><button id="gonew">Play World '+id+' ▶</button>';el.hidden=false;document.getElementById('gonew').onclick=()=>setWorld(id);}
+ else if(kind==='locked'){el.className='unlock lockedmsg';el.innerHTML='<p><b>'+(id==='1-3'?'World 1-3 is locked':'World 1-2 is locked')+'</b>Finish any journey in World '+(id==='1-3'?'1-2':'1-1')+' to unlock it. Stepping through to the end with Next counts too.</p>';el.hidden=false;}
+ else el.hidden=true;}
+function setWorld(id,scroll){if(!unlockState(id)){showUnlock('locked',id);return;}
+ WORLD=id;const w=WORLDS[id];SCEN=w.scen;QUIZ=w.quiz;LANEX=w.lanex;scen=SCEN[0];steps=scen.steps;play=!reduce;sel={kind:'step'};follow=false;setFollow();camT={x:170,y:100,z:1};
+ score=0;answered=0;document.getElementById('score').textContent='';stormT=0;forgeFx=0;
+ showUnlock(null);renderHeader();renderWorlds();renderEpisodes();buildScen();buildLadder();buildQuiz();goStep(0);
+ if(scroll)document.getElementById('map').scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});}
 /* boot */
-function frame(){clk++;g.drawImage(bgc,0,0);fx();seaLife();cloudWorld();boats();dinos();rf();devices();selection();waiting();weather();labels();banner();storm();tick();drawEffects();fireworks();updateCam();blit();requestAnimationFrame(frame);}
-buildScen();buildLadder();buildQuiz();goStep(0);
+function frame(){clk++;g.drawImage(bgc,0,0);fx();seaLife();cloudWorld();boats();dinos();rf();devices();selection();waiting();weather();labels();banner();storm();tick();drawEffects();fireworks();drawUnlock();drawForge();updateCam();blit();requestAnimationFrame(frame);}
+renderHeader();renderWorlds();renderEpisodes();buildScen();buildLadder();buildQuiz();goStep(0);
 (document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve()).then(()=>frame());
 </script>
 </body>
